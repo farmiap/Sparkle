@@ -1,0 +1,18 @@
+test
+fitsname test
+fitsdir /home/safonov/Sparkle/
+rtaname rta
+acqMode 5
+rtaSkip 1
+numKin 10
+shutter 0
+ft 1
+spool 1
+ampl 1
+horSpeed 0
+preamp 0
+vertSpeed 1
+vertAmpl 3
+temp -1
+exp 0.1
+EMgain 1
