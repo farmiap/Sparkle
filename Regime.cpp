@@ -533,6 +533,9 @@ bool setTemp(double temper)
 	{
 		usleep(500000);
 		if ((ch = getch()) != ERR) {
+
+			unsigned int state=GetTemperatureF(&temp);
+			SetTemperature((int)temp); // hold at temperature in the moment of stop
 			answer = false;
 			break;
 		} else {
