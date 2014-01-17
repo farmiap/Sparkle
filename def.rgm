@@ -1,13 +1,11 @@
 test
 fitsname test
-fitsdir /home/safonov/Sparkle/
+fitsdir /home/safonov/Camera/Sparkle/
 rtaname rta
-acqMode 5
 rtaSkip 1
 numKin 10
 shutter 0
 ft 1
-spool 1
 ampl 1
 horSpeed 0
 preamp 0

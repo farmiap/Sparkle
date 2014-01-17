@@ -17,17 +17,43 @@ int main(int argc, char* argv[])
 
 	RegimeContainer regimeContainer;
 
-	unsigned int error = Initialize("/usr/local/etc/andor");
-
-	if ( error != DRV_SUCCESS )
-	{
-		cout << "!!Error initialising system!!:: " << error << endl;
-		return 1;
-	}
-
+	unsigned int error;
 	float startTemp;
-	error = GetTemperatureF(&startTemp);
-	cout << "starting temperature:" << startTemp << endl;
+
+	int c;
+	int withoutDevice;
+
+	while ((c = getopt (argc, argv, "wh")) != -1)
+		switch (c)
+		{
+		case 'w':
+			withoutDevice = 1;
+			break;
+		case 'h':
+			cout << "-w start without detector initialization" << endl;
+			return 1;
+			break;
+		default:
+			break;
+		}
+
+	if ( withoutDevice == 0 )
+	{
+		error = Initialize("/usr/local/etc/andor");
+
+		if ( error != DRV_SUCCESS )
+		{
+			cout << "!!Error initialising system!!:: " << error << endl;
+			return 1;
+		}
+
+		error = GetTemperatureF(&startTemp);
+		cout << "starting temperature:" << startTemp << endl;
+	}
+	else
+	{
+		startTemp = 10.0;
+	}
 
 	while ( 1 )
 	{

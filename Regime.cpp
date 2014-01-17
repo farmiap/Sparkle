@@ -16,12 +16,10 @@ using namespace std;
 
 Regime::Regime()
 {
-	intParams["acqMode"] = 1;       // aquisition mode: single scan, kinetic, rta, etc
 	intParams["rtaSkip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
 	intParams["ft"] = 1;            // frame transfer: 0 - disabled, 1 - enabled
-	intParams["spool"] = 0;         // spooling: 0 - disabled, 1 - enabled
 	intParams["ampl"] = 1;          // amplifier: 0 - EM, 1 - conventional
 	intParams["horSpeed"] = 0;      // horisontal speed: conv: 0 - 3 MHz; EM 0 - 10 MHz, 1 - 5 MHz, 2 - 3 MHz
 	intParams["preamp"] = 0;        // preamplifier
@@ -159,28 +157,16 @@ int Regime::validate()
 		return 0;
 	}
 
-	if (( intParams["acqMode"] != 3 ) && ( intParams["acqMode"] != 5 ))
+	if ((intParams["rtaSkip"] < 1) || (intParams["rtaSkip"] > 1000))
 	{
-		cout << "acquistion mode validation failed" << endl;
+		cout << "rta skip validation failed" << endl;
 		return 0;
 	}
 
-	if (intParams["acqMode"] == 5)
+	if (intParams["numKin"] < 1)
 	{
-		if ((intParams["rtaSkip"] < 1) || (intParams["rtaSkip"] > 1000))
-		{
-			cout << "rta skip validation failed" << endl;
-			return 0;
-		}
-	}
-
-	if (intParams["acqMode"] == 3)
-	{
-		if (intParams["numKin"] < 1)
-		{
-			cout << "number of kinetic cycles validation failed" << endl;
-			return 0;
-		}
+		cout << "number of kinetic cycles validation failed" << endl;
+		return 0;
 	}
 
 	if (( intParams["shutter"] != 0 ) && ( intParams["shutter"] != 1 ))
@@ -195,11 +181,6 @@ int Regime::validate()
 		return 0;
 	}
 
-	if (( intParams["spool"] != 0 ) && ( intParams["spool"] != 1 ))
-	{
-		cout << "spooling validation failed" << endl;
-		return 0;
-	}
 
 	if (( intParams["ampl"] != 0 ) && ( intParams["ampl"] != 1 ))
 	{
@@ -318,12 +299,10 @@ int Regime::validate()
 
 void Regime::commandHintsFill()
 {
-	commandHints["acqMode"] = "aquisition mode: 3 - kinetic series, 5 - run till abort";
 	commandHints["rtaSkip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
 	commandHints["numKin"]  = "number of kinetic cycles in series";
 	commandHints["shutter"] = "shutter: 0 - close, 1 - open";
 	commandHints["ft"]      = "frame transfer: 0 - disabled, 1 - enabled";
-	commandHints["spool"]   = "spooling: 0 - disabled, 1 - enabled";
 	commandHints["ampl"]    = "amplifier: 0 - EM, 1 - conventional";
 	commandHints["horSpeed"]= "horisontal speed: conv ampl: 0 - 3 MHz; EM ampl: 0 - 10 MHz, 1 - 5 MHz, 2 - 3 MHz";
 	commandHints["preamp"]  = "preamplifier: 0, 1, 2. for values see performance sheet";
@@ -336,7 +315,7 @@ void Regime::commandHintsFill()
 	commandHints["imTop"]   = "image top side: 1-512";
 
 	commandHints["EMgain"]  = "EM gain: 1-1000";
-	commandHints["temp"]    = "target sensor temperature: -80 - 0C";
+	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
 
 	commandHints["acq"]     = "start acquisition";
@@ -356,14 +335,11 @@ int Regime::apply()
 
 	int width, height;
 	if ( status == DRV_SUCCESS ) status = GetDetector(&width,&height);
-	if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(intParams["acqMode"]);
 	if ( status == DRV_SUCCESS ) status = SetShutter(1,(intParams["shutter"]==1)?1:2,50,50);
 	if ( status == DRV_SUCCESS ) status = SetFrameTransferMode(intParams["ft"]);
 	if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
 	if ( status == DRV_SUCCESS ) status = SetReadMode(4); // image
 	if ( status == DRV_SUCCESS ) status = SetExposureTime((float)doubleParams["exp"]);
-	if (( status == DRV_SUCCESS ) && ( intParams["spool"] == 1 ))
-                                 status = SetSpool(1,5,(char*)pathes.getSpoolPath(),10);
 	if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["ampl"]);
 	if ( status == DRV_SUCCESS ) status = SetHSSpeed(intParams["ampl"],intParams["horSpeed"]);
 	if ( status == DRV_SUCCESS ) status = SetPreAmpGain(intParams["preamp"]);
