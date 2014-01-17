@@ -61,8 +61,15 @@ int main(int argc, char* argv[])
 		getline(cin, command);
 
 		if ( command.compare("exit") == 0 )
-			if ( finalize(startTemp) )
+			if ( withoutDevice == 0 )
+			{
+				if ( finalize(startTemp) )
+					break;
+			}
+			else
+			{
 				break;
+			}
 
 		if ( command.compare("") == 0 )
 			continue;

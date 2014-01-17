@@ -51,6 +51,13 @@ Regime::~Regime()
 
 int Regime::procCommand(string command)
 {
+
+	size_t percPos = command.find('%');
+	if ( percPos != string::npos ) {
+		command = command.erase(percPos);
+	}
+	cout << command << endl;
+
 	vector<string> tokens;
 	getTokens(command, ' ', &tokens);
 
