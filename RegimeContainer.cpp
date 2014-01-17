@@ -213,6 +213,10 @@ int RegimeContainer::procCommand(string command)
 				name = currentName;
 
 			regimes[name].apply();
+
+			for(map<string, Regime>::iterator it = regimes.begin(); it!=regimes.end(); ++it)
+				if ( name.compare(it->first) != 0 )
+					it->second->setActive(false);
 		}
 		break;
 		default:

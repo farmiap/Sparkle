@@ -44,20 +44,26 @@ Regime::Regime()
 	actionCommands["tim"] = GETTIMINGS;
 
 	commandHintsFill();
+
+	active = FALSE;
 }
 
 Regime::~Regime()
 {
 }
 
+void Regime::setActive(bool flag)
+{
+	active = flag;
+}
+
 int Regime::procCommand(string command)
 {
-
+	// cut comments
 	size_t percPos = command.find('%');
 	if ( percPos != string::npos ) {
 		command = command.erase(percPos);
 	}
-	cout << command << endl;
 
 	vector<string> tokens;
 	getTokens(command, ' ', &tokens);
@@ -73,12 +79,15 @@ int Regime::procCommand(string command)
 		switch ( pathesCommands[tokens[0]] )
 		{
 		case FITSNAME:
+			active = FALSE;
 			pathes.setFits(tokens[1]);
 			return 1;
 		case FITSDIR:
+			active = FALSE;
 			pathes.setDir(tokens[1]);
 			return 1;
 		case RTANAME:
+			active = FALSE;
 			pathes.setRTA(tokens[1]);
 			return 1;
 		default:
@@ -118,6 +127,7 @@ int Regime::procCommand(string command)
 			int value;
 			istringstream ( tokens[1] ) >> value;
 			intParams[tokens[0]] = value;
+			active = FALSE;
 		}
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
@@ -131,6 +141,7 @@ int Regime::procCommand(string command)
 			double value;
 			istringstream ( tokens[1] ) >> value;
 			doubleParams[tokens[0]] = value;
+			active = FALSE;
 		}
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
@@ -373,6 +384,7 @@ int Regime::apply()
 	if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
 	if ( status == DRV_SUCCESS )
 	{
+		active = TRUE;
 		cout << "error: regime has been set successfully " << status << endl;
 		return 1;
 	}
@@ -385,6 +397,12 @@ int Regime::apply()
 
 bool Regime::runTillAbort()
 {
+	if ( !active )
+	{
+		cout << "This regime is not applied, run rapp" << endl;
+		return false;
+	}
+
 	int width, height;
 
 	unsigned int status = GetDetector(&width, &height);
@@ -451,6 +469,12 @@ bool Regime::runTillAbort()
 
 bool Regime::acquire()
 {
+	if ( !active )
+	{
+		cout << "This regime is not applied, run rapp" << endl;
+		return false;
+	}
+
 	initscr();
 	cbreak();
 

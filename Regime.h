@@ -35,12 +35,14 @@ private:
 
 	Pathes pathes;
 	map<string, long> pathesCommands;
+	bool active;
 public:
 	int procCommand(string command);
 	int validate();
 	int apply();
 	bool runTillAbort();
 	bool acquire();
+	void setActive(bool flag);
 
 	void commandHintsFill();
 
