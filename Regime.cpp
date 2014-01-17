@@ -41,6 +41,7 @@ Regime::Regime()
 
 	actionCommands["acq"] = ACQUIRE;
 	actionCommands["prta"] = RUNTILLABORT;
+	actionCommands["tim"] = GETTIMINGS;
 
 	commandHintsFill();
 }
@@ -97,6 +98,9 @@ int Regime::procCommand(string command)
 				break;
 			case RUNTILLABORT:
 				runTillAbort();
+				break;
+			case GETTIMINGS:
+				getTimings();
 				break;
 			default:
 				break;
@@ -554,6 +558,22 @@ bool checkTempInside(double lowerLim, double upperLim)
 	float temp;
 	unsigned int state=GetTemperatureF(&temp);
 	return (( lowerLim < temp ) && (temp < upperLim) && ( state==DRV_TEMPERATURE_STABILIZED ));
+}
+
+bool getTimings()
+{
+	unsigned int status = DRV_SUCCESS;
+	float exposure;
+	float accum;
+	float kinetic;
+
+	cout << "acquisition timings:" << endl;
+	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+	cout << "exposure: " << exposure << " s" << endl;
+	cout << "accumulation cycle time: " << accum << " s" << endl;
+	cout << "kinetic cycle time: " << kinetic << " s" << endl;
+
+	return ( status == DRV_SUCCESS );
 }
 
 bool finalize(float startTemp)

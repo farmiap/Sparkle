@@ -2,4 +2,4 @@ Simple command-line tool to control EMCCD detector Andor iXon+897.
 
 To compile run make. Required libraries: libandor, ncurses, cfitsio.
 
-Manual will be available soon.
+Manual is included, SparkleManualRu.pdf, in Russian

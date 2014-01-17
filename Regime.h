@@ -21,7 +21,8 @@ enum
 enum
 {
 	ACQUIRE = 1,
-	RUNTILLABORT
+	RUNTILLABORT,
+	GETTIMINGS
 };
 
 class Regime
@@ -53,6 +54,7 @@ public:
 bool finalize(float startTemp);
 bool checkTempInside(double lowerLim, double upperLim);
 bool setTemp(double temper);
+bool getTimings();
 
 // auxiliary functions
 void doFits(int nx, int ny, char* filename,at_32 *data);
