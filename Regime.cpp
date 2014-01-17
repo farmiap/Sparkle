@@ -385,7 +385,7 @@ int Regime::apply()
 	if ( status == DRV_SUCCESS )
 	{
 		active = TRUE;
-		cout << "error: regime has been set successfully " << status << endl;
+		cout << "regime has been set successfully " << status << endl;
 		return 1;
 	}
 	else
