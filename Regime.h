@@ -42,6 +42,7 @@ public:
 	int apply();
 	bool runTillAbort();
 	bool acquire();
+	bool printTimings();
 	void setActive(bool flag);
 
 	void commandHintsFill();
@@ -56,7 +57,7 @@ public:
 bool finalize(float startTemp);
 bool checkTempInside(double lowerLim, double upperLim);
 bool setTemp(double temper);
-bool getTimings();
+
 
 // auxiliary functions
 void doFits(int nx, int ny, char* filename,at_32 *data);

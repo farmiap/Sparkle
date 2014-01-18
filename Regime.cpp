@@ -109,7 +109,7 @@ int Regime::procCommand(string command)
 				runTillAbort();
 				break;
 			case GETTIMINGS:
-				getTimings();
+				printTimings();
 				break;
 			default:
 				break;
@@ -524,6 +524,28 @@ bool Regime::acquire()
 	return true;
 }
 
+bool Regime::printTimings()
+{
+	if ( !active )
+	{
+		cout << "This regime is not applied, run rapp" << endl;
+		return false;
+	}
+
+	unsigned int status = DRV_SUCCESS;
+	float exposure;
+	float accum;
+	float kinetic;
+
+	cout << "acquisition timings:" << endl;
+	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+	cout << "exposure: " << exposure << " s" << endl;
+	cout << "accumulation cycle time: " << accum << " s" << endl;
+	cout << "kinetic cycle time: " << kinetic << " s" << endl;
+
+	return ( status == DRV_SUCCESS );
+}
+
 bool setTemp(double temper)
 {
 	initscr();
@@ -574,7 +596,7 @@ bool setTemp(double temper)
 	erase();
 	endwin();
 
-	return 1;
+	return answer;
 }
 
 bool checkTempInside(double lowerLim, double upperLim)
@@ -584,21 +606,7 @@ bool checkTempInside(double lowerLim, double upperLim)
 	return (( lowerLim < temp ) && (temp < upperLim) && ( state==DRV_TEMPERATURE_STABILIZED ));
 }
 
-bool getTimings()
-{
-	unsigned int status = DRV_SUCCESS;
-	float exposure;
-	float accum;
-	float kinetic;
 
-	cout << "acquisition timings:" << endl;
-	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
-	cout << "exposure: " << exposure << " s" << endl;
-	cout << "accumulation cycle time: " << accum << " s" << endl;
-	cout << "kinetic cycle time: " << kinetic << " s" << endl;
-
-	return ( status == DRV_SUCCESS );
-}
 
 bool finalize(float startTemp)
 {
