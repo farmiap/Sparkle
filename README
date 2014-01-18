@@ -3,3 +3,6 @@ Simple command-line tool to control EMCCD detector Andor iXon+897.
 To compile run make. Required libraries: libandor, ncurses, cfitsio.
 
 Manual is included, SparkleManualRu.pdf, in Russian
+
+Disclaimer: 
+EMCCD sensor can be brought programmatically into a state dangerous for its hardware, so please read hardware manual carefully before using it. Author of this software is not responsible for any damage the user will do to the sensor using this software.
