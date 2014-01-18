@@ -22,7 +22,8 @@ enum
 {
 	ACQUIRE = 1,
 	RUNTILLABORT,
-	GETTIMINGS
+	GETTIMINGS,
+	MAXFLUX
 };
 
 class Regime

@@ -42,6 +42,7 @@ Regime::Regime()
 
 	actionCommands["acq"] = ACQUIRE;
 	actionCommands["prta"] = RUNTILLABORT;
+	actionCommands["prtaf"] = MAXFLUX;
 	actionCommands["tim"] = GETTIMINGS;
 
 	commandHintsFill();
@@ -108,6 +109,9 @@ int Regime::procCommand(string command)
 				break;
 			case RUNTILLABORT:
 				runTillAbort(false);
+				break;
+			case MAXFLUX:
+				runTillAbort(true);
 				break;
 			case GETTIMINGS:
 				printTimings();
