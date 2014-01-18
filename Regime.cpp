@@ -462,10 +462,10 @@ bool Regime::runTillAbort(bool avImg)
 				if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
 				imageAverager.uploadImage(data);
 				move(2,0);
-				printw("running averages:");
+				printw("maximum of running average images: ");
 				for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
 				{
-					printw("%d %f",it->first,it->second);
+					printw("frames: %d max: %.0f; ",it->first,it->second);
 				}
 			}
 			if ( counter%intParams["rtaSkip"] == 0)

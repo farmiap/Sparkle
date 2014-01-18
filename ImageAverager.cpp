@@ -26,7 +26,12 @@ void ImageAverager::initWithDatasize(long inDatasize)
 	datasize = inDatasize;
 	for(map<int, double*>::iterator it = sums.begin(); it != sums.end(); ++it)
 	{
-		it->second = new double[datasize];
+		if ( it->second == NULL )
+			it->second = new double[datasize];
+		else
+			cout << "it exists!" << endl;
+		for(long i = 0; i < datasize; i++)
+			it->second[i] = 0.0;
 	}
 }
 
