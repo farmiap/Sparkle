@@ -40,7 +40,7 @@ public:
 	int procCommand(string command);
 	int validate();
 	int apply();
-	bool runTillAbort();
+	bool runTillAbort(bool avImg);
 	bool acquire();
 	bool printTimings();
 	void setActive(bool flag);

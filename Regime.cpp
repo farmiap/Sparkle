@@ -9,6 +9,7 @@
 #include <fitsio.h>
 
 #include "Regime.h"
+#include "ImageAverager.h"
 
 #define TEMP_MARGIN 3.0             // maximum stabilized temperature deviation from required
 
@@ -106,7 +107,7 @@ int Regime::procCommand(string command)
 				acquire();
 				break;
 			case RUNTILLABORT:
-				runTillAbort();
+				runTillAbort(false);
 				break;
 			case GETTIMINGS:
 				printTimings();
@@ -395,7 +396,7 @@ int Regime::apply()
 	}
 }
 
-bool Regime::runTillAbort()
+bool Regime::runTillAbort(bool avImg)
 {
 	if ( !active )
 	{
@@ -408,6 +409,16 @@ bool Regime::runTillAbort()
 	unsigned int status = GetDetector(&width, &height);
 
 	long datasize=width*height;
+
+	vector<int> periods;
+	periods.push_back(3);
+	periods.push_back(10);
+	periods.push_back(20);
+	ImageAverager imageAverager = ImageAverager(periods);
+	if (avImg)
+	{
+		imageAverager.initWithDatasize(datasize);
+	}
 
 	at_32 *data = new at_32[datasize];
 
@@ -442,9 +453,20 @@ bool Regime::runTillAbort()
 		else
 		{
 			if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(1000);
-			if ( counter%intParams["rtaSkip"] == 0)
+			if ( avImg )
 			{
 				if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
+				imageAverager.uploadImage(data);
+				move(2,0);
+				printw("running averages:");
+				for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
+				{
+					printw("%d %f",it->first,it->second);
+				}
+			}
+			if ( counter%intParams["rtaSkip"] == 0)
+			{
+				if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
 				if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
 				move(1,0);
 				printw("Current status: ");

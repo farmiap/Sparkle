@@ -6,6 +6,7 @@
 #include "atmcdLXd.h"
 
 #include "RegimeContainer.h"
+#include "ImageAverager.h"
 
 using namespace std;
 
@@ -23,14 +24,19 @@ int main(int argc, char* argv[])
 	int c;
 	int withoutDevice;
 
-	while ((c = getopt (argc, argv, "wh")) != -1)
+	while ((c = getopt (argc, argv, "awh")) != -1)
 		switch (c)
 		{
 		case 'w':
 			withoutDevice = 1;
 			break;
+		case 'a':
+			imageAveragerTest();
+			return 1;
+			break;
 		case 'h':
 			cout << "-w start without detector initialization" << endl;
+			cout << "-a image averager test" << endl;
 			return 1;
 			break;
 		default:
