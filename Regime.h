@@ -23,7 +23,8 @@ enum
 	ACQUIRE = 1,
 	RUNTILLABORT,
 	GETTIMINGS,
-	MAXFLUX
+	MAXFLUX,
+	TESTNCURSES
 };
 
 class Regime
@@ -43,6 +44,7 @@ public:
 	int apply();
 	bool runTillAbort(bool avImg);
 	bool acquire();
+	void testNCurses();
 	bool printTimings();
 	void setActive(bool flag);
 
@@ -57,7 +59,7 @@ public:
 // detector interaction functions which don't require regime framework
 bool finalize(float startTemp);
 bool checkTempInside(double lowerLim, double upperLim);
-bool setTemp(double temper);
+bool setTemp(double temper, bool waitForStab = true);
 
 
 // auxiliary functions

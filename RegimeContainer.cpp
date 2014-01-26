@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -158,13 +159,22 @@ int RegimeContainer::procCommand(string command)
 				break;
 			}
 
-			ifstream file(tokens[1].c_str(),ios::in);
-
-			if (!file)
+			struct stat  buffer;
+			if ( stat(tokens[1].c_str(), &buffer) == 0 )
 			{
 				cout << "error: file doesn't exist" << endl;
 				break;
 			}
+
+			ifstream file(tokens[1].c_str(),ios::in);
+
+			if ( !file )
+			{
+				cout << "error: file doesn't exist" << endl;
+				break;
+			}
+
+			cout << "hmm" << endl;
 
 			string str;
 			getline(file,str);

@@ -12,6 +12,7 @@ ImageAverager::ImageAverager(vector<int> inPeriods)
 	{
 		sums[*it] = NULL;
 		maximums[*it] = 0.0;
+		means[*it] = 0.0;
 	}
 	counter = 1;
 }
@@ -46,12 +47,15 @@ void ImageAverager::uploadImage(at_32 *inImage)
 		if ( counter%it->first == 0 )
 		{
 			double maximum = -1.0;
+			double mean = 0.0;
 			for(long i = 0; i < datasize; i++)
 			{
 				maximum = (maximum>it->second[i])?maximum:it->second[i];
+				mean = mean + it->second[i];
 				it->second[i] = 0.0;
 			}
 			maximums[it->first] = maximum/(double)it->first;
+			means[it->first] = mean/(datasize*it->first);
 //			cout << counter << ", "<< maximums[it->first] << endl;
 		}
 
@@ -83,5 +87,9 @@ void imageAveragerTest()
 	for(int c = 0;c < 50;c++)
 	{
 		imageAverager.uploadImage(sample);
+		for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
+		{
+			cout << "frames:" << it->first << " maximum:" << it->second << " mean: " << imageAverager.means[it->first] << endl;
+		}
 	}
 }

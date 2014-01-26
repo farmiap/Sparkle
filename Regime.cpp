@@ -44,6 +44,7 @@ Regime::Regime()
 	actionCommands["prta"] = RUNTILLABORT;
 	actionCommands["prtaf"] = MAXFLUX;
 	actionCommands["tim"] = GETTIMINGS;
+	actionCommands["testnc"] = TESTNCURSES;
 
 	commandHintsFill();
 
@@ -115,6 +116,9 @@ int Regime::procCommand(string command)
 				break;
 			case GETTIMINGS:
 				printTimings();
+				break;
+			case TESTNCURSES:
+				testNCurses();
 				break;
 			default:
 				break;
@@ -352,6 +356,11 @@ void Regime::commandHintsFill()
 
 int Regime::apply()
 {
+	if ( validate() == 0 )
+	{
+		cout << "error: current regime isn't valid" << endl;
+	}
+
 	unsigned int status = DRV_SUCCESS;
 	if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]-TEMP_MARGIN) )
 	{
@@ -463,9 +472,12 @@ bool Regime::runTillAbort(bool avImg)
 				imageAverager.uploadImage(data);
 				move(2,0);
 				printw("maximum of running average images: ");
+				int linenum = 0;
 				for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
 				{
-					printw("frames: %d max: %.0f; ",it->first,it->second);
+					move(3+linenum,0);
+					printw("frames: %d max: %.0f mean: %.0f ",it->first,it->second,imageAverager.means[it->first]);
+					linenum++;
 				}
 			}
 			if ( counter%intParams["rtaSkip"] == 0)
@@ -486,7 +498,7 @@ bool Regime::runTillAbort(bool avImg)
 			counter++;
 		}
 	}
-	erase();
+	werase(stdscr);
 	nodelay(stdscr, FALSE);
 	endwin();
 
@@ -533,7 +545,7 @@ bool Regime::acquire()
 		}
 		else
 		{
-			usleep(100000);
+			usleep((long)(doubleParams["exp"]*1.1e+6));
 			int acc,kin;
 			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
 			move(1,0);
@@ -543,11 +555,46 @@ bool Regime::acquire()
 			if ( state == DRV_IDLE) break;
 		}
 	}
-	erase();
+	werase(stdscr);
 	nodelay(stdscr, FALSE);
 	endwin();
 
 	return true;
+}
+
+void Regime::testNCurses()
+{
+	initscr();
+	raw();
+	noecho();
+
+	int ch;
+	nodelay(stdscr, TRUE);
+
+	move(0,0);
+	printw("Testing ncurses functionality...");
+
+	long val=0;
+
+	while ( 1 ) {
+		if ((ch = getch()) != ERR)
+		{
+			break;
+		}
+		else
+		{
+			usleep(100000);
+			move(1,0);
+			printw("progress: %d",val);
+			move(2,0);
+			printw("progress: %d",val);
+			val++;
+		}
+	}
+	werase(stdscr);
+	nodelay(stdscr, FALSE);
+	refresh();
+	endwin();
 }
 
 bool Regime::printTimings()
@@ -572,7 +619,7 @@ bool Regime::printTimings()
 	return ( status == DRV_SUCCESS );
 }
 
-bool setTemp(double temper)
+bool setTemp(double temper, bool waitForStab)
 {
 	initscr();
 	cbreak();
@@ -616,10 +663,17 @@ bool setTemp(double temper)
 			case DRV_TEMPERATURE_NOT_STABILIZED:	printw("Status: Temperature reached but not stabilized"); break;
 			default: printw("Status: Unknown"); break;
 			}
+			if ( !waitForStab && (fabs((double)temp-temper)<3.0) )
+			{
+				stabilized = true;
+				answer = true;
+			}
+
+
 		}
 	}
 	nodelay(stdscr, FALSE);
-	erase();
+	werase(stdscr);
 	endwin();
 
 	return answer;
@@ -629,6 +683,9 @@ bool checkTempInside(double lowerLim, double upperLim)
 {
 	float temp;
 	unsigned int state=GetTemperatureF(&temp);
+	if ( temp < lowerLim ) cout << "temperature is too low" << endl;
+	if ( temp > upperLim ) cout << "temperature is too high" << endl;
+	if ( state != DRV_TEMPERATURE_STABILIZED ) cout << "temperature is not stabilized" << endl;
 	return (( lowerLim < temp ) && (temp < upperLim) && ( state==DRV_TEMPERATURE_STABILIZED ));
 }
 
@@ -637,7 +694,7 @@ bool checkTempInside(double lowerLim, double upperLim)
 bool finalize(float startTemp)
 {
 	if (!checkTempInside(startTemp-15.0,startTemp+15.0))
-		if (!setTemp(startTemp-10.0))
+		if (!setTemp(startTemp-10.0,false))
 			return false; // in case temperature cannot be set, don't quit
 
 	ShutDown();

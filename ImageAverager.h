@@ -15,6 +15,7 @@ private:
 	long datasize;
 public:
 	map<int, double> maximums;
+	map<int, double> means;
 
 	ImageAverager(vector<int> inPeriods);
 	~ImageAverager();
