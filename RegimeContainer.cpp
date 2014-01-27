@@ -80,7 +80,6 @@ int RegimeContainer::procCommand(string command)
 			if ( regimes.count(tokens[1]) > 0 )
 			{
 				currentName = tokens[1];
-				cout << "current regime: " << currentName << endl;
 			}
 			else
 			{
@@ -160,9 +159,9 @@ int RegimeContainer::procCommand(string command)
 			}
 
 			struct stat  buffer;
-			if ( stat(tokens[1].c_str(), &buffer) == 0 )
+			if ( stat(tokens[1].c_str(), &buffer) != 0 )
 			{
-				cout << "error: file doesn't exist" << endl;
+				cout << "error: stat check: file doesn't exist" << endl;
 				break;
 			}
 
@@ -170,11 +169,9 @@ int RegimeContainer::procCommand(string command)
 
 			if ( !file )
 			{
-				cout << "error: file doesn't exist" << endl;
+				cout << "error: ifstream check: file doesn't exist" << endl;
 				break;
 			}
-
-			cout << "hmm" << endl;
 
 			string str;
 			getline(file,str);

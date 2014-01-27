@@ -367,7 +367,7 @@ int Regime::apply()
 		status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
 	}
 
-	cout << "temperature is ok, setting..." << endl;
+	if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
 
 	int width, height;
 	if ( status == DRV_SUCCESS ) status = GetDetector(&width,&height);
@@ -385,14 +385,14 @@ int Regime::apply()
 	{
 		if ( intParams["EMgain"] < 2 )
 		{
-			SetEMGainMode(0);
-		SetEMCCDGain(0);
+			if ( status == DRV_SUCCESS ) status = SetEMGainMode(0);
+			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(0);
 		}
 		else
 		{
-			SetEMAdvanced(intParams["EMgain"] > 300);
-			SetEMGainMode(3);
-			SetEMCCDGain(intParams["EMgain"]);
+			if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMgain"] > 300);
+			if ( status == DRV_SUCCESS ) status = SetEMGainMode(3);
+			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMgain"]);
 		}
 	}
 	if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
@@ -518,7 +518,7 @@ bool Regime::acquire()
 	initscr();
 	raw();
 	noecho();
-
+	werase(stdscr);
 	int ch;
 	nodelay(stdscr, TRUE);
 
@@ -548,7 +548,7 @@ bool Regime::acquire()
 		}
 		else
 		{
-			usleep((long)(doubleParams["exp"]*1.1e+6));
+			usleep((long)(doubleParams["exp"]*2e+6));
 			int acc,kin;
 			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
 			move(1,0);
