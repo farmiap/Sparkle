@@ -572,15 +572,13 @@ void Regime::testNCurses()
 	nodelay(stdscr, TRUE);
 
 	move(0,0);
-	printw("Testing ncurses functionality...");
+	printw("Testing ncurses functionality, press q or x to stop");
 
 	long val=0;
 
 	while ( 1 ) {
-		if ((ch = getch()) != ERR)
-		{
-			break;
-		}
+		ch = getch();
+		if ( (ch=='q') || (ch=='x') ) break;
 		else
 		{
 			usleep(100000);
@@ -595,6 +593,7 @@ void Regime::testNCurses()
 	nodelay(stdscr, FALSE);
 	refresh();
 	endwin();
+	usleep(10000);
 }
 
 bool Regime::printTimings()

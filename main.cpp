@@ -65,16 +65,18 @@ int main(int argc, char* argv[])
 	while ( 1 )
 	{
 		cout << regimeContainer.currentRegimeName() << "<";
-/*		
-		if (!getline(cin,command)) {
-		        cin.ignore();
-		        continue;
-		}
-*/
+		
+//		if (!getline(cin,command)) {
+//		        cin.clear();
+//		        getline(cin,command);
+//		        cin.ignore();
+//		        continue;
+//		}
 
+                
 		cin.exceptions(ios::badbit|ios::eofbit|ios::failbit);
 		try {
-                       getline(cin,command);
+        	        getline(cin,command);
 		}
 		catch (istream::failure e) {
 		        cerr << "error: " << strerror(errno) << endl;
