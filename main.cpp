@@ -66,29 +66,9 @@ int main(int argc, char* argv[])
 	{
 		cout << regimeContainer.currentRegimeName() << "<";
 		
-//		if (!getline(cin,command)) {
-//		        cin.clear();
-//		        getline(cin,command);
-//		        cin.ignore();
-//		        continue;
-//		}
-
-                
-		cin.exceptions(ios::badbit|ios::eofbit|ios::failbit);
-		try {
-        	        getline(cin,command);
-		}
-		catch (istream::failure e) {
-		        cerr << "error: " << strerror(errno) << endl;
-			if ( cin.fail() ) {
-				cerr << "fail" << endl;
-			}
-			if ( cin.eof() ) {
-				cerr << "eof" << endl;
-			}
-			if ( cin.bad() ) {
-                                cerr << "bad" << endl;
-			} 
+		if (!getline(cin,command)) {
+		        cin.clear(); // Sometimes getline behaves strangely after ncurses session, especially in screen. This is workaround.
+		        getline(cin,command);
 		}
 
 		if ( command.compare("exit") == 0 )

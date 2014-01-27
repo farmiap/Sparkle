@@ -436,7 +436,8 @@ bool Regime::runTillAbort(bool avImg)
 	at_32 *data = new at_32[datasize];
 
 	initscr();
-	cbreak();
+	raw();
+	noecho();
 
 	int ch;
 	nodelay(stdscr, TRUE);
@@ -500,6 +501,7 @@ bool Regime::runTillAbort(bool avImg)
 	}
 	werase(stdscr);
 	nodelay(stdscr, FALSE);
+	refresh();
 	endwin();
 
 	return true;
@@ -514,7 +516,8 @@ bool Regime::acquire()
 	}
 
 	initscr();
-	cbreak();
+	raw();
+	noecho();
 
 	int ch;
 	nodelay(stdscr, TRUE);
@@ -557,6 +560,7 @@ bool Regime::acquire()
 	}
 	werase(stdscr);
 	nodelay(stdscr, FALSE);
+	refresh();
 	endwin();
 
 	return true;
