@@ -459,8 +459,8 @@ bool Regime::runTillAbort(bool avImg)
 
 	int counter=0;
 	while ( 1 ) {
-		if ((ch = getch()) != ERR)
-		{
+		ch = getch();
+	        if ( (ch=='q') || (ch=='x') ) {
 			if ( status == DRV_SUCCESS ) status = AbortAcquisition();
 				break;
 		}
@@ -541,8 +541,8 @@ bool Regime::acquire()
 	}
 
 	while ( 1 ) {
-		if ((ch = getch()) != ERR)
-		{
+		ch = getch();
+	        if ( (ch=='q') || (ch=='x') ) {
 			if ( status == DRV_SUCCESS ) status = AbortAcquisition();
 				break;
 		}
@@ -625,33 +625,40 @@ bool Regime::printTimings()
 bool setTemp(double temper, bool waitForStab)
 {
 	initscr();
-	cbreak();
-
+	raw();
+	noecho();
+	nodelay(stdscr, TRUE);
+		
 	bool answer = 0;
 	bool stabilized = false;
 	int ch;
 	float temp;
-//	printw("Temperature is not consistent with setting or not stabilized.");
-	printw("Starting setting temperature, press any key to interrupt.");
 
-	nodelay(stdscr, TRUE);
 	move(0,0);
-	CoolerON();
-	SetTemperature((int)temper);
-	while ( !stabilized )
+	if (waitForStab) {
+		printw("Starting setting temperature, press q or x to interrupt. Will wait for stabilization.");
+	} else {
+                printw("Starting setting temperature, press q or x to interrupt. Will NOT wait for stabilization");	
+	}
+	move(1,0);
+	printw("Target temperature %d", (int)temper);
+	unsigned int status = DRV_SUCCESS;
+	status = SetTemperature((int)temper);
+	if (status == DRV_SUCCESS) status = CoolerON();
+	while ( ( !stabilized ) && ( status == DRV_SUCCESS ) )
 	{
 		usleep(500000);
-		if ((ch = getch()) != ERR) {
-
+                ch = getch();
+                if ( (ch=='q') || (ch=='x') ) {
 			unsigned int state=GetTemperatureF(&temp);
-			SetTemperature((int)temp); // hold at temperature in the moment of stop
+			status = SetTemperature((int)temp); // hold at temperature in the moment of stop
 			answer = false;
 			break;
 		} else {
 			unsigned int state=GetTemperatureF(&temp);
-			move(1,0);
-			printw("Current temperature: %g",temp);
 			move(2,0);
+			printw("Current temperature: %g",temp);
+			move(3,0);
 			switch (state) {
 			case DRV_TEMPERATURE_OFF: printw("Status: Cooler OFF"); break;
 			case DRV_TEMPERATURE_STABILIZED:
