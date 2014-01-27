@@ -226,7 +226,7 @@ int Regime::validate()
 	}
 	else
 	{
-		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]-TEMP_MARGIN) )
+		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
 		{
 			cout << "warning: temperature of sensor is not consistent with setting or not stabilized"  << endl;
 			cout << "it will be set during regime application" << endl;
@@ -362,7 +362,7 @@ int Regime::apply()
 	}
 
 	unsigned int status = DRV_SUCCESS;
-	if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]-TEMP_MARGIN) )
+	if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
 	{
 		status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
 	}
@@ -414,6 +414,12 @@ bool Regime::runTillAbort(bool avImg)
 	if ( !active )
 	{
 		cout << "This regime is not applied, run rapp" << endl;
+		return false;
+	}
+
+	if ( doubleParams["exp"] > 0.5 )
+	{
+		cout << "run till abort is possible only if exposure < 0.5 s" << endl;
 		return false;
 	}
 
@@ -548,7 +554,7 @@ bool Regime::acquire()
 		}
 		else
 		{
-			usleep((long)(doubleParams["exp"]*2e+6));
+			usleep(300000);
 			int acc,kin;
 			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
 			move(1,0);
@@ -693,9 +699,9 @@ bool checkTempInside(double lowerLim, double upperLim)
 {
 	float temp;
 	unsigned int state=GetTemperatureF(&temp);
-	if ( temp < lowerLim ) cout << "temperature is too low" << endl;
-	if ( temp > upperLim ) cout << "temperature is too high" << endl;
-	if ( state != DRV_TEMPERATURE_STABILIZED ) cout << "temperature is not stabilized" << endl;
+//	if ( temp < lowerLim ) cout << "temperature is too low" << endl;
+//	if ( temp > upperLim ) cout << "temperature is too high" << endl;
+//	if ( state != DRV_TEMPERATURE_STABILIZED ) cout << "temperature is not stabilized" << endl;
 	return (( lowerLim < temp ) && (temp < upperLim) && ( state==DRV_TEMPERATURE_STABILIZED ));
 }
 
