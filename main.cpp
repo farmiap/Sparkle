@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include "atmcdLXd.h"
 
 #include "RegimeContainer.h"
@@ -64,7 +65,29 @@ int main(int argc, char* argv[])
 	while ( 1 )
 	{
 		cout << regimeContainer.currentRegimeName() << "<";
-		getline(cin, command);
+/*		
+		if (!getline(cin,command)) {
+		        cin.ignore();
+		        continue;
+		}
+*/
+
+		cin.exceptions(ios::badbit|ios::eofbit|ios::failbit);
+		try {
+                       getline(cin,command);
+		}
+		catch (istream::failure e) {
+		        cerr << "error: " << strerror(errno) << endl;
+			if ( cin.fail() ) {
+				cerr << "fail" << endl;
+			}
+			if ( cin.eof() ) {
+				cerr << "eof" << endl;
+			}
+			if ( cin.bad() ) {
+                                cerr << "bad" << endl;
+			} 
+		}
 
 		if ( command.compare("exit") == 0 )
 			if ( withoutDevice == 0 )
