@@ -40,11 +40,13 @@ int Pathes::validate()
 	spool_path = fits_dir + fits_file;
 	rta_path = fits_dir + rta_file + fits_suffix;
 
+	string spool_path_suff = spool_path + fits_suffix;
+
 	struct stat  buffer;
-	if ( stat(spool_path.c_str(), &buffer) == 0)
-		cout << "------------->WARNING: file " << spool_path << " exists!!!" << endl;
-	if ( stat(rta_path.c_str(), &buffer) == 0)
-		cout << "------------->WARNING: file " << rta_path << " exists!!!" << endl;
+	if ( stat(spool_path_suff.c_str(), &buffer) == 0)
+		cout << "------------->WARNING: file " << spool_path_suff << " exists!!!" << endl;
+//	if ( stat(rta_path.c_str(), &buffer) == 0)
+//		cout << "------------->WARNING: file " << rta_path << " exists!!!" << endl;
 
 	return 1;
 }
