@@ -159,9 +159,16 @@ int RegimeContainer::procCommand(string command)
 			}
 
 			struct stat  buffer;
-			if ( stat(tokens[1].c_str(), &buffer) != 0 )
+			int st = stat(tokens[1].c_str(), &buffer);
+			if ( st != 0 )
 			{
 				cout << "error: stat check: file doesn't exist" << endl;
+				break;
+			}
+
+			if ( S_ISDIR(buffer.st_mode) ) 
+			{
+				cout << "error: stat check: this is directory!" << endl;
 				break;
 			}
 
