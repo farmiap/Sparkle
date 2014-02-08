@@ -709,6 +709,11 @@ bool checkTempInside(double lowerLim, double upperLim)
 
 bool finalize(float startTemp)
 {
+	int status = DRV_SUCCESS;
+	if ( status == DRV_SUCCESS ) status = SetShutter(1,2,50,50);
+	if ( status != DRV_SUCCESS ) 
+		return false;
+	
 	if (!checkTempInside(startTemp-15.0,startTemp+15.0))
 		if (!setTemp(startTemp-10.0,false))
 			return false; // in case temperature cannot be set, don't quit
