@@ -212,7 +212,6 @@ int Regime::validate()
 		return 0;
 	}
 
-
 	if (( intParams["ampl"] != 0 ) && ( intParams["ampl"] != 1 ))
 	{
 		cout << "amplifier validation failed" << endl;
@@ -359,6 +358,7 @@ int Regime::apply()
 	if ( validate() == 0 )
 	{
 		cout << "error: current regime isn't valid" << endl;
+		return 0;
 	}
 
 	unsigned int status = DRV_SUCCESS;
@@ -395,7 +395,9 @@ int Regime::apply()
 			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMgain"]);
 		}
 	}
+	cout << "setting image" << status << endl;
 	if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
+	cout << "image set" << status << endl;
 	if ( status == DRV_SUCCESS )
 	{
 		active = TRUE;
@@ -411,6 +413,7 @@ int Regime::apply()
 
 bool Regime::runTillAbort(bool avImg)
 {
+	cout << "entering RTA " << endl;
 	if ( !active )
 	{
 		cout << "This regime is not applied, run rapp" << endl;
@@ -423,12 +426,13 @@ bool Regime::runTillAbort(bool avImg)
 		return false;
 	}
 
+	int status = DRV_SUCCESS;
+
 	int width, height;
-
-	unsigned int status = GetDetector(&width, &height);
-
-	long datasize=width*height;
-
+	width = intParams["imRight"]-intParams["imLeft"]+1;
+	height = intParams["imTop"]-intParams["imBottom"]+1;
+	long datasize = width*height;
+	
 	vector<int> periods;
 	periods.push_back(3);
 	periods.push_back(10);
@@ -449,17 +453,22 @@ bool Regime::runTillAbort(bool avImg)
 	nodelay(stdscr, TRUE);
 
 	if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
+	cout << "status: " << status << endl;
+	
 	if ( status == DRV_SUCCESS ) status = SetSpool(0,5,(char*)pathes.getSpoolPath(),10); // disable spooling
+	cout << "status: " << status << endl;
+	
 	if ( status == DRV_SUCCESS ) status = StartAcquisition();
-
+	cout << "status: " << status << endl;
+	
+	
 	if ( status == DRV_SUCCESS ) {
 		move(0,0);
-		printw("Run till abort started (press any key to interrupt)");
+		printw("Run till abort started (press any key to interrupt), width = %d, height = %d", width, height);
 	} else {
-		move(0,0);
-		printw("Run till abort failed");
 		nodelay(stdscr, FALSE);
 		endwin();
+		cout << "Run till abort failed, status=" << status << endl;
 		return false;
 	}
 
