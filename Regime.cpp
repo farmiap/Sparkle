@@ -255,7 +255,7 @@ int Regime::validate()
 			return 0;
 		}
 
-		if (( intParams["EMGain"] < 1 ) || ( intParams["temp"] > 1000 ))
+		if (( intParams["EMGain"] < 1 ) || ( intParams["EMGain"] > 1000 ))
 		{
 			cout << "EMGain validation failed" << endl;
 			return 0;
@@ -395,9 +395,7 @@ int Regime::apply()
 			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMgain"]);
 		}
 	}
-	cout << "setting image" << status << endl;
 	if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
-	cout << "image set" << status << endl;
 	if ( status == DRV_SUCCESS )
 	{
 		active = TRUE;
@@ -453,14 +451,8 @@ bool Regime::runTillAbort(bool avImg)
 	nodelay(stdscr, TRUE);
 
 	if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
-	cout << "status: " << status << endl;
-	
 	if ( status == DRV_SUCCESS ) status = SetSpool(0,5,(char*)pathes.getSpoolPath(),10); // disable spooling
-	cout << "status: " << status << endl;
-	
 	if ( status == DRV_SUCCESS ) status = StartAcquisition();
-	cout << "status: " << status << endl;
-	
 	
 	if ( status == DRV_SUCCESS ) {
 		move(0,0);
