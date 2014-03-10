@@ -21,6 +21,7 @@ Regime::Regime()
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
 	intParams["ft"] = 1;            // frame transfer: 0 - disabled, 1 - enabled
+	intParams["adc"] = 1;          // A/D channel: 0 - 14-bit, 1 - 16-bit
 	intParams["ampl"] = 1;          // amplifier: 0 - EM, 1 - conventional
 	intParams["horSpeed"] = 0;      // horisontal speed: conv: 0 - 3 MHz; EM 0 - 10 MHz, 1 - 5 MHz, 2 - 3 MHz
 	intParams["preamp"] = 0;        // preamplifier
@@ -43,6 +44,7 @@ Regime::Regime()
 	actionCommands["acq"] = ACQUIRE;
 	actionCommands["prta"] = RUNTILLABORT;
 	actionCommands["prtaf"] = MAXFLUX;
+	actionCommands["prtas"] = RTASPOOL;
 	actionCommands["tim"] = GETTIMINGS;
 	actionCommands["testnc"] = TESTNCURSES;
 
@@ -109,10 +111,13 @@ int Regime::procCommand(string command)
 				acquire();
 				break;
 			case RUNTILLABORT:
-				runTillAbort(false);
+				runTillAbort(false,false);
 				break;
 			case MAXFLUX:
-				runTillAbort(true);
+				runTillAbort(true,false);
+				break;
+			case RTASPOOL:
+				runTillAbort(false,true);
 				break;
 			case GETTIMINGS:
 				printTimings();
@@ -218,6 +223,12 @@ int Regime::validate()
 		return 0;
 	}
 
+	if (( intParams["adc"] != 0 ) && ( intParams["adc"] != 1 ))
+	{
+		cout << "AD channel validation failed" << endl;
+		return 0;
+	}
+
 	if (( intParams["temp"] > 0 ) || ( intParams["temp"] < -80 ))
 	{
 		cout << "temperature validation failed" << endl;
@@ -232,11 +243,20 @@ int Regime::validate()
 		}
 	}
 
+	if ( intParams["adc"] == 1 )
+	{
+		if ( intParams["horSpeed"] != 0 )
+		{
+			cout << "horizontal speed validation failed (ADC)" << endl;
+			return 0;
+		}
+	}
+
 	if ( intParams["ampl"] == 1 )
 	{
 		if ( intParams["horSpeed"] != 0 )
 		{
-			cout << "horizontal speed validation failed" << endl;
+			cout << "horizontal speed validation failed (ampl)" << endl;
 			return 0;
 		}
 	}
@@ -333,6 +353,7 @@ void Regime::commandHintsFill()
 	commandHints["numKin"]  = "number of kinetic cycles in series";
 	commandHints["shutter"] = "shutter: 0 - close, 1 - open";
 	commandHints["ft"]      = "frame transfer: 0 - disabled, 1 - enabled";
+	commandHints["adc"]    = "AD channel: 0 - 14-bit (faster), 1 - 16-bit (slower)";
 	commandHints["ampl"]    = "amplifier: 0 - EM, 1 - conventional";
 	commandHints["horSpeed"]= "horisontal speed: conv ampl: 0 - 3 MHz; EM ampl: 0 - 10 MHz, 1 - 5 MHz, 2 - 3 MHz";
 	commandHints["preamp"]  = "preamplifier: 0, 1, 2. for values see performance sheet";
@@ -376,7 +397,7 @@ int Regime::apply()
 	if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
 	if ( status == DRV_SUCCESS ) status = SetReadMode(4); // image
 	if ( status == DRV_SUCCESS ) status = SetExposureTime((float)doubleParams["exp"]);
-	if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["ampl"]);
+	if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["adc"]);
 	if ( status == DRV_SUCCESS ) status = SetHSSpeed(intParams["ampl"],intParams["horSpeed"]);
 	if ( status == DRV_SUCCESS ) status = SetPreAmpGain(intParams["preamp"]);
 	if ( status == DRV_SUCCESS ) status = SetVSSpeed(intParams["vertSpeed"]);
@@ -409,7 +430,7 @@ int Regime::apply()
 	}
 }
 
-bool Regime::runTillAbort(bool avImg)
+bool Regime::runTillAbort(bool avImg, bool doSpool)
 {
 	cout << "entering RTA " << endl;
 	if ( !active )
@@ -451,7 +472,7 @@ bool Regime::runTillAbort(bool avImg)
 	nodelay(stdscr, TRUE);
 
 	if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
-	if ( status == DRV_SUCCESS ) status = SetSpool(0,5,(char*)pathes.getSpoolPath(),10); // disable spooling
+	if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
 	if ( status == DRV_SUCCESS ) status = StartAcquisition();
 	
 	if ( status == DRV_SUCCESS ) {

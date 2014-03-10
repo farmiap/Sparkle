@@ -24,6 +24,7 @@ enum
 	RUNTILLABORT,
 	GETTIMINGS,
 	MAXFLUX,
+	RTASPOOL,
 	TESTNCURSES
 };
 
@@ -42,7 +43,7 @@ public:
 	int procCommand(string command);
 	int validate();
 	int apply();
-	bool runTillAbort(bool avImg);
+	bool runTillAbort(bool avImg, bool doSpool);
 	bool acquire();
 	void testNCurses();
 	bool printTimings();

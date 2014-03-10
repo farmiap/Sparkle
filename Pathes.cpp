@@ -19,7 +19,7 @@ Pathes::~Pathes()
 
 void Pathes::print()
 {
-	cout << "  " << "SPOOL:" << spool_path << endl;
+	cout << "  " << "FITS:" << spool_path << endl;
 	cout << "  " << "RTA:" << rta_path << endl;
 }
 
