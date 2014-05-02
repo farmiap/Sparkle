@@ -17,7 +17,7 @@ using namespace std;
 
 Regime::Regime()
 {
-	intParams["rtaSkip"] = 1;
+	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
 	intParams["ft"] = 1;            // frame transfer: 0 - disabled, 1 - enabled
@@ -28,7 +28,7 @@ Regime::Regime()
 	intParams["vertSpeed"] = 1;     // vertical clocking speed (0 - 0.3, 1 - 0.5, 2 - 0.9, 3 - 1.7, 4 - 3.3) \mu s
 	intParams["vertAmpl"] = 3;      // vertical clocking voltage amplitude 0 - 4
 	intParams["temp"] = -1.0;	    // temperature
-	intParams["EMgain"] = 1;      // EM gain
+	intParams["EMGain"] = 1;      // EM gain
 
 	intParams["imLeft"] = 1;        // image left side
 	intParams["imRight"] = 512;     // image right side
@@ -193,7 +193,7 @@ int Regime::validate()
 		return 0;
 	}
 
-	if ((intParams["rtaSkip"] < 1) || (intParams["rtaSkip"] > 1000))
+	if ((intParams["skip"] < 1) || (intParams["skip"] > 1000))
 	{
 		cout << "rta skip validation failed" << endl;
 		return 0;
@@ -349,7 +349,7 @@ int Regime::validate()
 
 void Regime::commandHintsFill()
 {
-	commandHints["rtaSkip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
+	commandHints["skip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
 	commandHints["numKin"]  = "number of kinetic cycles in series";
 	commandHints["shutter"] = "shutter: 0 - close, 1 - open";
 	commandHints["ft"]      = "frame transfer: 0 - disabled, 1 - enabled";
@@ -365,7 +365,7 @@ void Regime::commandHintsFill()
 	commandHints["imBottom"]= "image bottom side: 1-512";
 	commandHints["imTop"]   = "image top side: 1-512";
 
-	commandHints["EMgain"]  = "EM gain: 1-1000";
+	commandHints["EMGain"]  = "EM gain: 1-1000";
 	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
 
@@ -404,16 +404,16 @@ int Regime::apply()
 	if ( status == DRV_SUCCESS ) status = SetVSAmplitude(intParams["vertAmpl"]);
 	if ( intParams["ampl"] == 0 )
 	{
-		if ( intParams["EMgain"] < 2 )
+		if ( intParams["EMGain"] < 2 )
 		{
 			if ( status == DRV_SUCCESS ) status = SetEMGainMode(0);
 			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(0);
 		}
 		else
 		{
-			if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMgain"] > 300);
+			if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMGain"] > 300);
 			if ( status == DRV_SUCCESS ) status = SetEMGainMode(3);
-			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMgain"]);
+			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
 		}
 	}
 	if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
@@ -509,7 +509,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					linenum++;
 				}
 			}
-			if ( counter%intParams["rtaSkip"] == 0)
+			if ( counter%intParams["skip"] == 0)
 			{
 				if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
 				if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
