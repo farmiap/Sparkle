@@ -17,6 +17,13 @@ using namespace std;
 
 Regime::Regime()
 {
+}
+
+Regime::Regime(int _withDetector,int _withHWPMotor)
+{
+	withDetector = _withDetector;
+	withHWPMotor = _withHWPMotor;
+
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
@@ -381,42 +388,46 @@ int Regime::apply()
 		cout << "error: current regime isn't valid" << endl;
 		return 0;
 	}
-
 	unsigned int status = DRV_SUCCESS;
-	if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
+
+	if ( withDetector )
 	{
-		status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
+		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
+		{
+			status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
+		}
+
+		if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
+
+		int width, height;
+		if ( status == DRV_SUCCESS ) status = GetDetector(&width,&height);
+		if ( status == DRV_SUCCESS ) status = SetShutter(1,(intParams["shutter"]==1)?1:2,50,50);
+		if ( status == DRV_SUCCESS ) status = SetFrameTransferMode(intParams["ft"]);
+		if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
+		if ( status == DRV_SUCCESS ) status = SetReadMode(4); // image
+		if ( status == DRV_SUCCESS ) status = SetExposureTime((float)doubleParams["exp"]);
+		if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["adc"]);
+		if ( status == DRV_SUCCESS ) status = SetHSSpeed(intParams["ampl"],intParams["horSpeed"]);
+		if ( status == DRV_SUCCESS ) status = SetPreAmpGain(intParams["preamp"]);
+		if ( status == DRV_SUCCESS ) status = SetVSSpeed(intParams["vertSpeed"]);
+		if ( status == DRV_SUCCESS ) status = SetVSAmplitude(intParams["vertAmpl"]);
+		if ( intParams["ampl"] == 0 )
+		{
+			if ( intParams["EMGain"] < 2 )
+			{
+				if ( status == DRV_SUCCESS ) status = SetEMGainMode(0);
+				if ( status == DRV_SUCCESS ) status = SetEMCCDGain(0);
+			}
+			else
+			{
+				if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMGain"] > 300);
+				if ( status == DRV_SUCCESS ) status = SetEMGainMode(3);
+				if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
+			}
+		}
+		if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
 	}
 
-	if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
-
-	int width, height;
-	if ( status == DRV_SUCCESS ) status = GetDetector(&width,&height);
-	if ( status == DRV_SUCCESS ) status = SetShutter(1,(intParams["shutter"]==1)?1:2,50,50);
-	if ( status == DRV_SUCCESS ) status = SetFrameTransferMode(intParams["ft"]);
-	if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
-	if ( status == DRV_SUCCESS ) status = SetReadMode(4); // image
-	if ( status == DRV_SUCCESS ) status = SetExposureTime((float)doubleParams["exp"]);
-	if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["adc"]);
-	if ( status == DRV_SUCCESS ) status = SetHSSpeed(intParams["ampl"],intParams["horSpeed"]);
-	if ( status == DRV_SUCCESS ) status = SetPreAmpGain(intParams["preamp"]);
-	if ( status == DRV_SUCCESS ) status = SetVSSpeed(intParams["vertSpeed"]);
-	if ( status == DRV_SUCCESS ) status = SetVSAmplitude(intParams["vertAmpl"]);
-	if ( intParams["ampl"] == 0 )
-	{
-		if ( intParams["EMGain"] < 2 )
-		{
-			if ( status == DRV_SUCCESS ) status = SetEMGainMode(0);
-			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(0);
-		}
-		else
-		{
-			if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMGain"] > 300);
-			if ( status == DRV_SUCCESS ) status = SetEMGainMode(3);
-			if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
-		}
-	}
-	if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
 	if ( status == DRV_SUCCESS )
 	{
 		active = TRUE;
@@ -451,7 +462,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	width = intParams["imRight"]-intParams["imLeft"]+1;
 	height = intParams["imTop"]-intParams["imBottom"]+1;
 	long datasize = width*height;
-	
+
 	vector<int> periods;
 	periods.push_back(3);
 	periods.push_back(10);
@@ -471,13 +482,23 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int ch;
 	nodelay(stdscr, TRUE);
 
-	if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
-	if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
-	if ( status == DRV_SUCCESS ) status = StartAcquisition();
-	
+	if (withDetector)
+	{
+		if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
+		if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
+		if ( status == DRV_SUCCESS ) status = StartAcquisition();
+	}
+
 	if ( status == DRV_SUCCESS ) {
 		move(0,0);
-		printw("Run till abort started (press any key to interrupt), width = %d, height = %d", width, height);
+		if ( withDetector )
+		{
+			printw("Run till abort started (press q or x to interrupt), width = %d, height = %d", width, height);
+		}
+		else
+		{
+			printw("Run till abort started (press q or x to interrupt), without detector");
+		}
 	} else {
 		nodelay(stdscr, FALSE);
 		endwin();
@@ -489,40 +510,48 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	while ( 1 ) {
 		ch = getch();
 	        if ( (ch=='q') || (ch=='x') ) {
-			if ( status == DRV_SUCCESS ) status = AbortAcquisition();
-				break;
+	        	if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
+			break;
 		}
 		else
 		{
-			if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(1000);
-			if ( avImg )
+			if ( withDetector )
 			{
-				if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
-				imageAverager.uploadImage(data);
-				move(2,0);
-				printw("maximum of running average images: ");
-				int linenum = 0;
-				for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
+				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(1000);
+				if ( avImg )
 				{
-					move(3+linenum,0);
-					printw("frames: %d max: %.0f mean: %.0f ",it->first,it->second,imageAverager.means[it->first]);
-					linenum++;
+					if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
+					imageAverager.uploadImage(data);
+					move(2,0);
+					printw("maximum of running average images: ");
+					int linenum = 0;
+					for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
+					{
+						move(3+linenum,0);
+						printw("frames: %d max: %.0f mean: %.0f ",it->first,it->second,imageAverager.means[it->first]);
+						linenum++;
+					}
+				}
+				if ( counter%intParams["skip"] == 0)
+				{
+					if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
+					if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
+					move(1,0);
+					printw("Current status: ");
+					switch (status) {
+					case DRV_SUCCESS: printw("OK"); break;
+					case DRV_P1INVALID: printw("invalid pointer"); break;
+					case DRV_P2INVALID: printw("array size is incorrect"); break;
+					case DRV_NO_NEW_DATA: printw("no new data"); break;
+					default: printw("unknown error");
+					}
+					printw(" frame no.: %d",counter);
 				}
 			}
-			if ( counter%intParams["skip"] == 0)
+			else
 			{
-				if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
-				if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
-				move(1,0);
-				printw("Current status: ");
-				switch (status) {
-				case DRV_SUCCESS: printw("OK"); break;
-				case DRV_P1INVALID: printw("invalid pointer"); break;
-				case DRV_P2INVALID: printw("array size is incorrect"); break;
-				case DRV_NO_NEW_DATA: printw("no new data"); break;
-				default: printw("unknown error");
-				}
 				printw(" frame no.: %d",counter);
+				usleep(500000);
 			}
 			counter++;
 		}
@@ -543,6 +572,12 @@ bool Regime::acquire()
 		return false;
 	}
 
+	if ( !withDetector )
+	{
+		cout << "This command doesn't work without detector" << endl;
+		return false;
+	}
+
 	initscr();
 	raw();
 	noecho();
@@ -559,7 +594,7 @@ bool Regime::acquire()
 
 	if ( status == DRV_SUCCESS ) {
 		move(0,0);
-		printw("Kinetic series started (press any key to interrupt)");
+		printw("Kinetic series started (press q or x to interrupt)");
 	} else {
 		move(0,0);
 		printw("Kinetic series failed");
@@ -636,6 +671,12 @@ bool Regime::printTimings()
 		return false;
 	}
 
+	if ( !withDetector )
+	{
+		cout << "This command doesn't work without detector" << endl;
+		return false;
+	}
+
 	unsigned int status = DRV_SUCCESS;
 	float exposure;
 	float accum;
@@ -652,11 +693,13 @@ bool Regime::printTimings()
 
 bool setTemp(double temper, bool waitForStab)
 {
+
+
 	initscr();
 	raw();
 	noecho();
 	nodelay(stdscr, TRUE);
-		
+
 	bool answer = 0;
 	bool stabilized = false;
 	int ch;
@@ -666,7 +709,7 @@ bool setTemp(double temper, bool waitForStab)
 	if (waitForStab) {
 		printw("Starting setting temperature, press q or x to interrupt. Will wait for stabilization.");
 	} else {
-                printw("Starting setting temperature, press q or x to interrupt. Will NOT wait for stabilization");	
+                printw("Starting setting temperature, press q or x to interrupt. Will NOT wait for stabilization");
 	}
 	move(1,0);
 	printw("Target temperature %d", (int)temper);
@@ -729,18 +772,21 @@ bool checkTempInside(double lowerLim, double upperLim)
 
 
 
-bool finalize(float startTemp)
+bool finalize(int _withDetector,int _withHWPMotor,float startTemp)
 {
 	int status = DRV_SUCCESS;
-	if ( status == DRV_SUCCESS ) status = SetShutter(1,2,50,50);
-	if ( status != DRV_SUCCESS ) 
-		return false;
-	
-	if (!checkTempInside(startTemp-15.0,startTemp+15.0))
-		if (!setTemp(startTemp-10.0,false))
-			return false; // in case temperature cannot be set, don't quit
+	if ( _withDetector )
+	{
+		if ( status == DRV_SUCCESS ) status = SetShutter(1,2,50,50);
+		if ( status != DRV_SUCCESS )
+			return false;
 
-	ShutDown();
+		if (!checkTempInside(startTemp-15.0,startTemp+15.0))
+			if (!setTemp(startTemp-10.0,false))
+				return false; // in case temperature cannot be set, don't quit
+
+		ShutDown();
+	}
 	return true;
 }
 
@@ -748,7 +794,7 @@ void doFits(int nx, int ny, char* filename,at_32 *data)
 {
 	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
 	int status, ii, jj;
-	long  fpixel, nelements, exposure;
+	long  fpixel, nelements;
 	long *array[nx];
 
 	int bitpix   =  FLOAT_IMG; /* 32-bit double pixel values       */

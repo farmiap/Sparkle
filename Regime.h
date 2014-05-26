@@ -36,6 +36,9 @@ private:
 	map<string, int> actionCommands;
 	map<string, string> commandHints;
 
+	int withDetector;
+	int withHWPMotor;
+
 	Pathes pathes;
 	map<string, long> pathesCommands;
 	bool active;
@@ -54,11 +57,12 @@ public:
 	void print();
 
 	Regime();
+	Regime(int _withDetector,int _withHWPMotor);
 	~Regime();
 };
 
 // detector interaction functions which don't require regime framework
-bool finalize(float startTemp);
+bool finalize(int _withDetector,int _withHWPMotor,float startTemp);
 bool checkTempInside(double lowerLim, double upperLim);
 bool setTemp(double temper, bool waitForStab = true);
 

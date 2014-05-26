@@ -10,6 +10,11 @@ using namespace std;
 
 RegimeContainer::RegimeContainer()
 {
+
+}
+
+RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor)
+{
 	regimeCommands["rlist"] = RLIST;
 	regimeCommands["rnew"]  = RNEW;
 	regimeCommands["rmod"]  = RMOD;
@@ -20,7 +25,10 @@ RegimeContainer::RegimeContainer()
 	regimeCommands["rload"] = RLOAD;
 	regimeCommands["rcopy"] = RCOPY;
 
-	regimes[DEFAULT_REGIME] = Regime();
+	withDetector = _withDetector;
+	withHWPMotor = _withHWPMotor;
+
+	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor);
 	currentName = DEFAULT_REGIME;
 }
 
@@ -66,7 +74,7 @@ int RegimeContainer::procCommand(string command)
 				break;
 			}
 			cout << "new regime: " << tokens[1] << endl;
-			regimes[tokens[1]] = Regime();
+			regimes[tokens[1]] = Regime(withDetector,withHWPMotor);
 		}
 		break;
 		case RMOD:
@@ -166,7 +174,7 @@ int RegimeContainer::procCommand(string command)
 				break;
 			}
 
-			if ( S_ISDIR(buffer.st_mode) ) 
+			if ( S_ISDIR(buffer.st_mode) )
 			{
 				cout << "error: stat check: this is directory!" << endl;
 				break;
@@ -194,7 +202,7 @@ int RegimeContainer::procCommand(string command)
 
 			string newname = ftokens[0];
 
-			Regime regime;
+			Regime regime(withDetector,withHWPMotor);
 			while ( getline(file,str) )
 				regime.procCommand(str);
 			regimes[newname] = regime;

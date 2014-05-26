@@ -29,9 +29,12 @@ private:
 	map<string, long> regimeCommands;
 	map<string, Regime> regimes;
 	string currentName;
+	int withDetector;
+	int withHWPMotor;
 	void addRegime(string name);
 public:
 	RegimeContainer();
+	RegimeContainer(int _withDetector,int _withHWPMotor);
 	~RegimeContainer();
 	int procCommand(string command);
 	string currentRegimeName();

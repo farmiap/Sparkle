@@ -17,26 +17,29 @@ int main(int argc, char* argv[])
 
 	string command;
 
-	RegimeContainer regimeContainer;
-
 	unsigned int error;
 	float startTemp;
 
 	int c;
-	int withoutDevice;
+	int withDetector = 1;
+	int withHWPMotor = 1;
 
-	while ((c = getopt (argc, argv, "awh")) != -1)
+	while ((c = getopt (argc, argv, "dmah")) != -1)
 		switch (c)
 		{
-		case 'w':
-			withoutDevice = 1;
+		case 'd':
+			withDetector = 0;
+			break;
+		case 'm':
+			withHWPMotor = 0;
 			break;
 		case 'a':
 			imageAveragerTest();
 			return 1;
 			break;
 		case 'h':
-			cout << "-w start without detector initialization" << endl;
+			cout << "-d work without detector" << endl;
+			cout << "-m work without HWP motor" << endl;
 			cout << "-a image averager test" << endl;
 			return 1;
 			break;
@@ -44,7 +47,9 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-	if ( withoutDevice == 0 )
+	RegimeContainer regimeContainer(withDetector,withHWPMotor);
+
+	if ( withDetector )
 	{
 		error = Initialize("/usr/local/etc/andor");
 
@@ -65,22 +70,17 @@ int main(int argc, char* argv[])
 	while ( 1 )
 	{
 		cout << regimeContainer.currentRegimeName() << "<";
-		
+
 		if (!getline(cin,command)) {
 		        cin.clear(); // Sometimes getline behaves strangely after ncurses session, especially in screen. This is workaround.
 		        getline(cin,command);
 		}
 
 		if ( command.compare("exit") == 0 )
-			if ( withoutDevice == 0 )
-			{
-				if ( finalize(startTemp) )
+		{
+			if ( finalize(withDetector,withHWPMotor,startTemp) )
 					break;
-			}
-			else
-			{
-				break;
-			}
+		}
 
 		if ( command.compare("") == 0 )
 			continue;
