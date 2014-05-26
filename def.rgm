@@ -2,7 +2,7 @@ test
 fitsname test
 fitsdir /home/safonov/Camera/Sparkle/
 rtaname rta
-rtaSkip 1
+skip 1
 numKin 10
 shutter 0
 ft 1
@@ -13,4 +13,12 @@ vertSpeed 1
 vertAmpl 3
 temp -1
 exp 0.1
-EMgain 1
+EMGain 1
+HWPDevice /dev/ximc/00000367
+HWPPairNum 1
+HWPGroupNum 1
+HWPStep 10.0
+HWPStart 0.0
+HWPIntercept 0.0
+HWPSlope 0.015
+HWPPeriod 10.0

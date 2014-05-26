@@ -31,10 +31,11 @@ enum
 class Regime
 {
 private:
-	map<string, double> doubleParams;
-	map<string, int> intParams;
-	map<string, int> actionCommands;
-	map<string, string> commandHints;
+	map<string, double> 	doubleParams;
+	map<string, int> 	intParams;
+	map<string, string> 	stringParams;
+	map<string, int> 	actionCommands;
+	map<string, string> 	commandHints;
 
 	int withDetector;
 	int withHWPMotor;

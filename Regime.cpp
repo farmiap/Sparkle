@@ -44,6 +44,16 @@ Regime::Regime(int _withDetector,int _withHWPMotor)
 
 	doubleParams["exp"] = 0.1;      // exposure
 
+	// HWP rotation unit section
+	stringParams["HWPDevice"] = "";
+	intParams["HWPPairNum"] = 1; // number of pairs in group
+	intParams["HWPGroupNum"] = 1; // number of groups
+	doubleParams["HWPStep"] = 10; // step of HWP P.A. (degrees)
+	doubleParams["HWPStart"] = 0; // HWP P.A. (degrees)
+	doubleParams["HWPIntercept"] = 0.0; // engine position when P.A. is zero (steps)
+	doubleParams["HWPSlope"] = 0.015; // degrees per engine step
+	doubleParams["HWPPeriod"] = 10.0; // period between swithes (seconds)
+
 	pathesCommands["fitsname"] = FITSNAME;
 	pathesCommands["fitsdir"] = FITSDIR;
 	pathesCommands["rtaname"] = RTANAME;
@@ -153,7 +163,7 @@ int Regime::procCommand(string command)
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
 		else
-			cout << "error: unknown parameter" << endl;
+			cout << "error: unknown parameter" << tokens[0] << endl;
 	}
 	else if ( doubleParams.count(tokens[0]) > 0 )
 	{
@@ -167,10 +177,22 @@ int Regime::procCommand(string command)
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
 		else
-			cout << "error: unknown parameter" << endl;
+			cout << "error: unknown parameter" << tokens[0] << endl;
+	}
+	else if ( stringParams.count(tokens[0]) > 0 )
+	{
+		if ( tokens.size() == 2)
+		{
+			stringParams[tokens[0]] = tokens[1];
+			active = FALSE;
+		}
+		else if ( commandHints.count( tokens[0] ) > 0 )
+			cout << commandHints[tokens[0]] << endl;
+		else
+			cout << "error: unknown parameter" << tokens[0] << endl;
 	}
 	else
-		cout << "error: unknown parameter" << endl;
+		cout << "error: unknown parameter"  << tokens[0] << endl;
 
 
 	return 1;
@@ -185,6 +207,11 @@ void Regime::print()
 	}
 	cout << "double parameters:" << endl;
 	for(map<string, double>::iterator it = doubleParams.begin();it != doubleParams.end();++it)
+	{
+		cout << "  " << it->first << ":" << it->second << endl;
+	}
+	cout << "string parameters:" << endl;
+	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
 	{
 		cout << "  " << it->first << ":" << it->second << endl;
 	}
@@ -375,6 +402,15 @@ void Regime::commandHintsFill()
 	commandHints["EMGain"]  = "EM gain: 1-1000";
 	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
+
+	commandHints["HWPDevice"]  = "HWP motor device id (e.g. /dev/ximc/00000367)";
+	commandHints["HWPPairNum"] = "number of pairs in group: >= 1";
+	commandHints["HWPGroupNum"] = "number of groups: >= 1";
+	commandHints["HWPStep"] = "step of HWP P.A. (degrees): > 0.0";
+	commandHints["HWPStart"] = "HWP P.A. start (degrees): > 0.0";
+	commandHints["HWPIntercept"] = "engine position when P.A. is zero (steps): > 0.0";
+	commandHints["HWPSlope"] = "degrees per engine step: > 0.0";
+	commandHints["HWPPeriod"] = "period between swithes (seconds): > 0.0";
 
 	commandHints["acq"]     = "start acquisition";
 	commandHints["prta"]    = "start run till abort";
