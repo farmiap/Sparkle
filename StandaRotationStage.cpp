@@ -55,11 +55,17 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	cout << "Device opened" << endl;
 
 	if ((result = get_status( device, &state )) != result_ok)
+	{
 		cout << "error getting status: " << error_string( result ) << endl;
+		return 0;
+	}
 	print_state( &state );
 
 	if ((result = get_engine_settings( device, &engine_settings )) != result_ok)
+	{
 		cout << "error getting engine settings: " << error_string( result ) << endl;
+		return 0;
+	}
 
 	// activate backlash compensation
 	engine_settings.EngineFlags |= ENGINE_ANTIPLAY;
@@ -67,32 +73,72 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
 
 	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
+	{
 		cout << "error setting engine settings: " << error_string( result ) << endl;
-
+		return 0;
+	}
 	// do not stop at the borders (infinite motion)
 	if ((result = get_edges_settings( device, &edges_settings )) != result_ok)
+	{
 		cout << "error getting edges settings: " << error_string( result ) << endl;
+		return 0;
+	}
 	edges_settings.BorderFlags = 0;
 	if ((result = set_edges_settings( device, &edges_settings )) != result_ok)
+	{
 		cout << "error setting edges settings: " << error_string( result ) << endl;
-
+		return 0;
+	}
 	cout << "finding home" << endl;
 	if ((result = command_home( device )) != result_ok)
+	{
 		cout << "error finding home: " <<  error_string( result ) << endl;
+		return 0;
+	}
 	msec_sleep(300);
 
 	do
 	{
 		if ((result = get_status( device, &state )) != result_ok)
+		{
 			cout << "error getting status: " << error_string( result ) << endl;
+			return 0;
+		}
 		msec_sleep(50);
 	} while ( state.MoveSts != 0 );
 
 	cout << "done. Zeroing" << endl;
 	if ((result = command_zero( device )) != result_ok)
+	{
 		cout << "error zeroing: " << error_string( result ) << endl;
+		return 0;
+	}
 	cout << "done" << endl;
 
+	return ( result==result_ok );
+}
+
+int StandaRotationStage::startMoveToAngle(double targetAngle)
+{
+	double dpos = convIntercept + targetAngle/convSlope;
+	int pos = (int)dpos;
+	int uPos = (int)(microstepFrac*(dpos-(double)pos));
+	if ((result = command_move( device, pos, uPos )) != result_ok)
+		cout << "error command move " << error_string( result ) << endl;
+	else
+		cout << "motion started" << endl;
+	return 1;
+}
+
+int StandaRotationStage::startMoveByAngle(double deltaAngle)
+{
+	double dpos = deltaAngle/convSlope;
+	int pos = (int)dpos;
+	int uPos = (int)(microstepFrac*(dpos-(double)pos));
+	if ((result = command_movr( device, pos, uPos )) != result_ok)
+		cout << "error command move " << error_string( result ) << endl;
+	else
+		cout << "motion started" << endl;
 	return 1;
 }
 

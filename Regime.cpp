@@ -482,6 +482,7 @@ int Regime::apply()
 	if ( withHWPMotor )
 	{
 		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"]);
+		HWPMotor->startMoveToAngle(45.0);
 	}
 
 	return HWPStatus;

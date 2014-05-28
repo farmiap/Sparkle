@@ -27,6 +27,8 @@ public:
 
 	void printDeviceName();
 	int initializeStage(string _deviceName, double _convSlope, double _convIntercept);
+	int startMoveToAngle(double deltaAngle);
+	int startMoveByAngle(double deltaAngle);
 };
 
 void print_state (status_t* state);
