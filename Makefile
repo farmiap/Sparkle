@@ -1,8 +1,8 @@
 all: Sparkle
 
 
-Sparkle: main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o
-	g++ -landor -lncurses -lximc main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o -o Sparkle
+Sparkle: main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o HWPRotation.o
+	g++ -landor -lncurses -lximc main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o HWPRotation.o -o Sparkle
 	
 main.o: main.cpp RegimeContainer.cpp RegimeContainer.h ImageAverager.h
 	g++ -c main.cpp
@@ -21,6 +21,9 @@ ImageAverager.o: ImageAverager.cpp ImageAverager.h
 
 StandaRotationStage.o: StandaRotationStage.cpp StandaRotationStage.h
 	g++ -c StandaRotationStage.cpp
+
+HWPRotation.o: HWPRotation.cpp HWPRotation.h
+	g++ -c HWPRotation.cpp
 	
 clean:
 	rm -rf *.o Sparkle

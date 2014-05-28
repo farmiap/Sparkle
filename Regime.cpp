@@ -10,6 +10,7 @@
 
 #include "Regime.h"
 #include "ImageAverager.h"
+#include "HWPRotation.h"
 
 #define TEMP_MARGIN 3.0             // maximum stabilized temperature deviation from required
 
@@ -482,7 +483,6 @@ int Regime::apply()
 	if ( withHWPMotor )
 	{
 		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"]);
-		HWPMotor->startMoveToAngle(45.0);
 	}
 
 	return HWPStatus;
@@ -554,6 +554,11 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 
 	int counter=0;
+
+	HWPRotationTrigger HWPTrigger(5.0);
+	if (withHWPMotor)
+		HWPTrigger.start();
+
 	while ( 1 ) {
 		ch = getch();
 	        if ( (ch=='q') || (ch=='x') ) {
@@ -597,8 +602,14 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 			else
 			{
+				move(1,0);
 				printw(" frame no.: %d",counter);
-				usleep(500000);
+				usleep(100000);
+			}
+			if ( HWPTrigger.check() )
+			{
+				move(2,0);
+				printw("trigger fired: %d",counter);
 			}
 			counter++;
 		}
