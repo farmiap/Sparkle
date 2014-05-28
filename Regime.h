@@ -8,6 +8,7 @@
 #include "atmcdLXd.h"
 
 #include "Pathes.h"
+#include "StandaRotationStage.h"
 
 using namespace std;
 
@@ -40,6 +41,8 @@ private:
 	int withDetector;
 	int withHWPMotor;
 
+	StandaRotationStage *HWPMotor;
+
 	Pathes pathes;
 	map<string, long> pathesCommands;
 	bool active;
@@ -58,7 +61,7 @@ public:
 	void print();
 
 	Regime();
-	Regime(int _withDetector,int _withHWPMotor);
+	Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor);
 	~Regime();
 };
 

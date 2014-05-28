@@ -8,6 +8,7 @@
 
 #include "RegimeContainer.h"
 #include "ImageAverager.h"
+#include "StandaRotationStage.h"
 
 using namespace std;
 
@@ -47,7 +48,9 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-	RegimeContainer regimeContainer(withDetector,withHWPMotor);
+	StandaRotationStage HWPMotor;
+
+	RegimeContainer regimeContainer(withDetector,withHWPMotor,&HWPMotor);
 
 	if ( withDetector )
 	{

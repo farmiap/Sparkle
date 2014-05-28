@@ -19,10 +19,12 @@ Regime::Regime()
 {
 }
 
-Regime::Regime(int _withDetector,int _withHWPMotor)
+Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor)
 {
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
+
+	HWPMotor = _HWPMotor;
 
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
@@ -467,14 +469,22 @@ int Regime::apply()
 	if ( status == DRV_SUCCESS )
 	{
 		active = TRUE;
-		cout << "regime has been set successfully " << status << endl;
-		return 1;
+		cout << "detector regime has been set successfully " << status << endl;
 	}
 	else
 	{
-		cout << "error: regime application failed " << status << endl;
+		cout << "error: detector regime application failed " << status << endl;
 		return 0;
 	}
+
+	int HWPStatus = 0;
+
+	if ( withHWPMotor )
+	{
+		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"]);
+	}
+
+	return HWPStatus;
 }
 
 bool Regime::runTillAbort(bool avImg, bool doSpool)
