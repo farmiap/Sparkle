@@ -4,6 +4,7 @@ using namespace std;
 
 HWPRotationTrigger::HWPRotationTrigger(double _period)
 {
+	firstTime = 1;
 	period = _period;
 }
 
@@ -17,7 +18,7 @@ void HWPRotationTrigger::start()
 	gettimeofday(&startTime,&tz);
 }
 
-bool HWPRotationTrigger::check()
+bool HWPRotationTrigger::check(int *currentStep)
 {
 	struct timeval currTime;
 	struct timezone tz;
@@ -26,5 +27,11 @@ bool HWPRotationTrigger::check()
 	double deltaCurr = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
 	prevTime.tv_sec = currTime.tv_sec;
 	prevTime.tv_usec = currTime.tv_usec;
-	return ((int)(deltaPrev/period) != (int)(deltaCurr/period));
+	*currentStep = (int)(deltaCurr/period);
+	if (firstTime) {
+		firstTime = 0;
+		return 0;
+	} else {
+		return ((int)(deltaPrev/period) != (int)(deltaCurr/period));
+	}
 }

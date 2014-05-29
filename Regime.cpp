@@ -565,8 +565,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
 		msec_sleep(50.0);
 	} while ( HWPisMoving );
-	msec_sleep(200.0);
-	HWPRotationTrigger HWPTrigger(5.0);
+	msec_sleep(1000.0);
+	HWPRotationTrigger HWPTrigger(doubleParams["HWPPeriod"]);
 	if (withHWPMotor)
 		HWPTrigger.start();
 
@@ -580,16 +580,17 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			if ( withHWPMotor ) {
 				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-				if ( HWPTrigger.check() )
+				int currentStep;
+				if ( HWPTrigger.check(&currentStep) )
 				{
 					move(2,0);
-					printw("trigger fired: %d",counter);
+					printw("trigger fired: frame: %d HWP step: %d",counter,currentStep);
 					if ( !HWPisMoving )
 						HWPMotor->startMoveByAngle(doubleParams["HWPStep"]);
 					else
 					{
 						move(3,0);
-						printw("ATTENTION: HWP stage is skipping",counter);
+						printw("ATTENTION: HWP stage is skipping steps",counter);
 					}
 				}
 			}

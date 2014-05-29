@@ -161,6 +161,7 @@ int StandaRotationStage::getAngle(int *isMoving,double *angle)
 	}
 	double position = (double)state.CurPosition + ((double)state.uCurPosition)/(double)microstepFrac;
 	*angle = (position - convIntercept)*convSlope;
+	*angle = *angle-360.0*floor(*angle/360.0);
 	*isMoving = state.MoveSts;
 	return 1;
 }

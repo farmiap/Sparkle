@@ -7,6 +7,7 @@
 class HWPRotationTrigger
 {
 private:
+	int firstTime;
 	double period;
 	struct timeval startTime;
 	struct timeval prevTime;
@@ -15,7 +16,7 @@ public:
 	~HWPRotationTrigger();
 
 	void start();
-	bool check();
+	bool check(int *currentStep);
 };
 
 #endif
