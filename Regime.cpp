@@ -554,7 +554,18 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 
 	int counter=0;
+	int HWPisMoving;
+	double HWPAngle;
 
+	HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
+	msec_sleep(200.0);
+	do
+	{
+		HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+//		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
+		msec_sleep(50.0);
+	} while ( HWPisMoving );
+	msec_sleep(200.0);
 	HWPRotationTrigger HWPTrigger(5.0);
 	if (withHWPMotor)
 		HWPTrigger.start();
@@ -567,6 +578,21 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		}
 		else
 		{
+			if ( withHWPMotor ) {
+				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+				if ( HWPTrigger.check() )
+				{
+					move(2,0);
+					printw("trigger fired: %d",counter);
+					if ( !HWPisMoving )
+						HWPMotor->startMoveByAngle(doubleParams["HWPStep"]);
+					else
+					{
+						move(3,0);
+						printw("ATTENTION: HWP stage is skipping",counter);
+					}
+				}
+			}
 			if ( withDetector )
 			{
 				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(1000);
@@ -603,14 +629,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			else
 			{
 				move(1,0);
-				printw(" frame no.: %d",counter);
-				usleep(100000);
+				printw(" frame no.: %d, angle %f",counter,HWPAngle);
+				msec_sleep(0.1);
 			}
-			if ( HWPTrigger.check() )
-			{
-				move(2,0);
-				printw("trigger fired: %d",counter);
-			}
+
 			counter++;
 		}
 	}

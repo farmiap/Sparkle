@@ -1,4 +1,5 @@
 #include "StandaRotationStage.h"
+#include <math.h>
 
 using namespace std;
 
@@ -120,9 +121,19 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 
 int StandaRotationStage::startMoveToAngle(double targetAngle)
 {
+	if ((result = get_status( device, &state )) != result_ok)
+	{
+		cout << "error getting status: " << error_string( result ) << endl;
+		return 0;
+	}
+	double cycle = 360.0/convSlope;
+
 	double dpos = convIntercept + targetAngle/convSlope;
 	int pos = (int)dpos;
 	int uPos = (int)(microstepFrac*(dpos-(double)pos));
+
+	pos = pos + (int)(cycle*round((state.CurPosition - pos)/cycle));
+
 	if ((result = command_move( device, pos, uPos )) != result_ok)
 		cout << "error command move " << error_string( result ) << endl;
 	else
@@ -137,8 +148,20 @@ int StandaRotationStage::startMoveByAngle(double deltaAngle)
 	int uPos = (int)(microstepFrac*(dpos-(double)pos));
 	if ((result = command_movr( device, pos, uPos )) != result_ok)
 		cout << "error command move " << error_string( result ) << endl;
-	else
-		cout << "motion started" << endl;
+//	cout << "motion started" << endl;
+	return 1;
+}
+
+int StandaRotationStage::getAngle(int *isMoving,double *angle)
+{
+	if ((result = get_status( device, &state )) != result_ok)
+	{
+		cout << "error getting status: " << error_string( result ) << endl;
+		return 0;
+	}
+	double position = (double)state.CurPosition + ((double)state.uCurPosition)/(double)microstepFrac;
+	*angle = (position - convIntercept)*convSlope;
+	*isMoving = state.MoveSts;
 	return 1;
 }
 
