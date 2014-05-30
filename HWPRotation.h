@@ -27,12 +27,18 @@ class HWPAngleContainer
 private:
 	vector<double> angles; // vector contains angles corresponding to frames
 	vector<int> moved; // vector contains whether HWP was moving during frame acquisition
+
+	vector<int> intrvBegins;
+	vector<int> intrvEnds;
+	vector<double> intrvAngles;
 public:
 	HWPAngleContainer();
 	~HWPAngleContainer();
 
 	void addStatusAndAngle(int _status,double _angle);
 	void print();
+	void cleanStatus();
+	void convertToIntervals();
 };
 
 #endif

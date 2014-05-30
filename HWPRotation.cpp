@@ -62,5 +62,77 @@ void HWPAngleContainer::print()
 		itm++;
 	}
 	fclose(f);
+
+	FILE *f2=fopen("temp2.dat","w");
+	vector<int>::iterator itb = intrvBegins.begin();
+	vector<int>::iterator ite = intrvEnds.begin();
+	for(vector<double>::iterator it=intrvAngles.begin();it!=intrvAngles.end();++it)
+	{
+		fprintf(f2,"%d %d %f\n",*itb,*ite,*it);
+		itb++;
+		ite++;
+	}
+	fclose(f2);
 }
 
+void HWPAngleContainer::cleanStatus()
+{
+	// This function handles specifics of Standa stage.
+	// Before start of motion (~300-400 ms before) it returns
+	// status "accelerating" for a very short time instead of actually not moving.
+	// This function removes such events from status vector.
+
+	vector<int>::iterator itm = moved.begin();
+	vector<double>::iterator itnext;
+	vector<int>::iterator itmnext;
+	for(vector<double>::iterator it=angles.begin();it!=angles.end();++it)
+	{
+		itnext = it;
+		itnext++;
+		itmnext = itm;
+		itmnext++;
+		if ( (*itm == 1) && (*itmnext == 0) && (*it==*itnext) )
+			*itm = 0;
+		itm++;
+	}
+}
+
+void HWPAngleContainer::convertToIntervals()
+{
+	intrvBegins.erase(intrvBegins.begin(),intrvBegins.end());
+	intrvEnds.erase(intrvEnds.begin(),intrvEnds.end());
+	intrvAngles.erase(intrvAngles.begin(),intrvAngles.end());
+
+	vector<int>::iterator itm = moved.begin();
+	bool inInterval = 0;
+	int intervalBegin;
+	int intervalEnd;
+	double intervalAngle;
+	int counter = 1;
+	for(vector<double>::iterator it=angles.begin();it!=angles.end();++it)
+	{
+		if (!inInterval)
+		{
+			if (*itm == 0)
+			{
+				intervalBegin = counter;
+				intervalAngle = *it;
+				inInterval = 1;
+			}
+		}
+		else
+		{
+			if (*itm == 1)
+			{
+				intervalEnd = counter-1;
+				intrvBegins.push_back(intervalBegin);
+				intrvEnds.push_back(intervalEnd);
+				intrvAngles.push_back(intervalAngle);
+				inInterval = 0;
+			}
+		}
+		itm++;
+		counter++;
+	}
+
+}

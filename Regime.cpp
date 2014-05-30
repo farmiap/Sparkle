@@ -640,10 +640,11 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			{
 				move(1,0);
 				printw(" frame no.: %d, angle %f",counter,HWPAngle);
-				msec_sleep(300.0);
+				msec_sleep(3.0);
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-			angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
+			angleContainer.addStatusAndAngle(HWPisMovingPrev,HWPAngle);
+//			angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
 			if (motionStarted)
 				HWPisMovingPrev = 1;
 			else
@@ -658,6 +659,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	endwin();
 
 	cout << "writing HWP angle data" << endl;
+	angleContainer.cleanStatus();
+	angleContainer.convertToIntervals();
 	angleContainer.print();
 
 	return true;
