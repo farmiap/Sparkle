@@ -15,10 +15,10 @@ temp -1
 exp 0.1
 EMGain 1
 HWPDevice /dev/ximc/00000367
-HWPPairNum 1
-HWPGroupNum 1
+HWPPairNum 2
+HWPGroupNum 3
 HWPStep 45.0
 HWPStart 0.0
 HWPIntercept 0.0
 HWPSlope 0.015
-HWPPeriod 5.0
+HWPPeriod 4.0

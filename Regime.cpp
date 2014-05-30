@@ -580,13 +580,14 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			if ( withHWPMotor ) {
 				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-				int currentStep;
-				if ( HWPTrigger.check(&currentStep) )
+				int currentStepNumber;
+				if ( HWPTrigger.check(&currentStepNumber) )
 				{
 					move(2,0);
-					printw("trigger fired: frame: %d HWP step: %d",counter,currentStep);
+					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
+					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
 					if ( !HWPisMoving )
-						HWPMotor->startMoveByAngle(doubleParams["HWPStep"]);
+						HWPMotor->startMoveByAngle(nextStepValue);
 					else
 					{
 						move(3,0);
@@ -631,7 +632,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			{
 				move(1,0);
 				printw(" frame no.: %d, angle %f",counter,HWPAngle);
-				msec_sleep(0.1);
+				msec_sleep(300.0);
 			}
 
 			counter++;

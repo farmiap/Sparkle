@@ -136,8 +136,6 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 
 	if ((result = command_move( device, pos, uPos )) != result_ok)
 		cout << "error command move " << error_string( result ) << endl;
-	else
-		cout << "motion started" << endl;
 	return 1;
 }
 
@@ -164,6 +162,14 @@ int StandaRotationStage::getAngle(int *isMoving,double *angle)
 	*angle = *angle-360.0*floor(*angle/360.0);
 	*isMoving = state.MoveSts;
 	return 1;
+}
+
+double getNextStepValue(int currentStepNumber, double refStepValue, int pairNum, int groupNum)
+{
+	if (currentStepNumber%(pairNum*2) == 0)
+		return refStepValue/(double)groupNum;
+	else
+		return refStepValue;
 }
 
 void print_state (status_t* state)
