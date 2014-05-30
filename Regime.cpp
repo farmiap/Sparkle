@@ -662,6 +662,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	angleContainer.cleanStatus();
 	angleContainer.convertToIntervals();
 	angleContainer.print();
+	angleContainer.writeToFits();
 
 	return true;
 }
