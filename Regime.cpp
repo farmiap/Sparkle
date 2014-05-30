@@ -555,6 +555,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 	int counter=0;
 	int HWPisMoving;
+	int HWPisMovingPrev=1;
+	int motionStarted=0;
 	double HWPAngle;
 
 	HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
@@ -569,6 +571,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	HWPRotationTrigger HWPTrigger(doubleParams["HWPPeriod"]);
 	if (withHWPMotor)
 		HWPTrigger.start();
+	HWPAngleContainer angleContainer;
 
 	while ( 1 ) {
 		ch = getch();
@@ -584,6 +587,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				if ( HWPTrigger.check(&currentStepNumber) )
 				{
 					move(2,0);
+					motionStarted = 1;
 					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
 					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
 					if ( !HWPisMoving )
@@ -593,6 +597,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 						move(3,0);
 						printw("ATTENTION: HWP stage is skipping steps",counter);
 					}
+				}
+				else
+				{
+					motionStarted = 0;
 				}
 			}
 			if ( withDetector )
@@ -634,6 +642,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				printw(" frame no.: %d, angle %f",counter,HWPAngle);
 				msec_sleep(300.0);
 			}
+			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
+			angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
+			if (motionStarted)
+				HWPisMovingPrev = 1;
+			else
+				HWPisMovingPrev = HWPisMoving;
 
 			counter++;
 		}
@@ -642,6 +656,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	nodelay(stdscr, FALSE);
 	refresh();
 	endwin();
+
+	cout << "writing HWP angle data" << endl;
+	angleContainer.print();
 
 	return true;
 }

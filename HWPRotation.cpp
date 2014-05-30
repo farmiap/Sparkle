@@ -1,3 +1,5 @@
+#include <cstdio>
+
 #include "HWPRotation.h"
 
 using namespace std;
@@ -35,3 +37,30 @@ bool HWPRotationTrigger::check(int *currentStep)
 		return ((int)(deltaPrev/period) != (int)(deltaCurr/period));
 	}
 }
+
+HWPAngleContainer::HWPAngleContainer()
+{
+}
+
+HWPAngleContainer::~HWPAngleContainer()
+{
+}
+
+void HWPAngleContainer::addStatusAndAngle(int _status,double _angle)
+{
+	moved.push_back(_status);
+	angles.push_back(_angle);
+}
+
+void HWPAngleContainer::print()
+{
+	FILE *f=fopen("temp.dat","w");
+	vector<int>::iterator itm = moved.begin();
+	for(vector<double>::iterator it=angles.begin();it!=angles.end();++it)
+	{
+		fprintf(f,"%d %f\n",*itm,*it);
+		itm++;
+	}
+	fclose(f);
+}
+

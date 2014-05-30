@@ -3,6 +3,9 @@
 
 #include <sys/time.h>
 #include <iostream>
+#include <vector>
+
+using namespace std;
 
 class HWPRotationTrigger
 {
@@ -17,6 +20,19 @@ public:
 
 	void start();
 	bool check(int *currentStep);
+};
+
+class HWPAngleContainer
+{
+private:
+	vector<double> angles; // vector contains angles corresponding to frames
+	vector<int> moved; // vector contains whether HWP was moving during frame acquisition
+public:
+	HWPAngleContainer();
+	~HWPAngleContainer();
+
+	void addStatusAndAngle(int _status,double _angle);
+	void print();
 };
 
 #endif
