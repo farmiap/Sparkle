@@ -643,13 +643,14 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				msec_sleep(3.0);
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-			angleContainer.addStatusAndAngle(HWPisMovingPrev,HWPAngle);
-//			angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
-			if (motionStarted)
-				HWPisMovingPrev = 1;
-			else
-				HWPisMovingPrev = HWPisMoving;
-
+			if ( withHWPMotor )
+			{
+				angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
+				if (motionStarted)
+					HWPisMovingPrev = 1;
+				else
+					HWPisMovingPrev = HWPisMoving;
+			}
 			counter++;
 		}
 	}
@@ -658,11 +659,14 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
-	cout << "writing HWP angle data" << endl;
-	angleContainer.cleanStatus();
-	angleContainer.convertToIntervals();
-	angleContainer.print();
-	angleContainer.writeToFits();
+	if ( withHWPMotor )
+	{
+		cout << "writing HWP angle data" << endl;
+		angleContainer.cleanStatus();
+		angleContainer.convertToIntervals();
+//		angleContainer.print();
+		angleContainer.writeToFits((char*)pathes.getIntrvPath());
+	}
 
 	return true;
 }

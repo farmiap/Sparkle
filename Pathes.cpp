@@ -9,6 +9,7 @@ Pathes::Pathes()
 {
 //    cout << "pathes constructor" << endl;
 	fits_suffix = ".fits";
+	intrv_suffix = "_intrv.fits";
 //    cout << fits_suffix << endl;
 }
 
@@ -21,6 +22,7 @@ void Pathes::print()
 {
 	cout << "  " << "FITS:" << spool_path << endl;
 	cout << "  " << "RTA:" << rta_path << endl;
+	cout << "  " << "Intervals:" << intrv_path << endl;
 }
 
 int Pathes::validate()
@@ -39,6 +41,7 @@ int Pathes::validate()
 
 	spool_path = fits_dir + fits_file;
 	rta_path = fits_dir + rta_file + fits_suffix;
+	intrv_path = fits_dir + fits_file + intrv_suffix;
 
 	string spool_path_suff = spool_path + fits_suffix;
 

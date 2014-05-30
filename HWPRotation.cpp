@@ -76,10 +76,8 @@ void HWPAngleContainer::print()
 	fclose(f2);
 }
 
-void HWPAngleContainer::writeToFits()
+void HWPAngleContainer::writeToFits(char* filename)
 {
-	char filename[100];
-	sprintf(filename,"temp3.fits");
 	writeIntervalsToASCIITableFITS(intrvBegins.size(),filename,intrvBegins,intrvEnds,intrvAngles);
 }
 

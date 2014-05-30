@@ -39,7 +39,7 @@ public:
 	void print();
 	void cleanStatus();
 	void convertToIntervals();
-	void writeToFits();
+	void writeToFits(char* filename);
 };
 
 void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data);
