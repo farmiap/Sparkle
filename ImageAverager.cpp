@@ -19,6 +19,13 @@ ImageAverager::ImageAverager(vector<int> inPeriods)
 
 ImageAverager::~ImageAverager()
 {
+	for(map<int, double*>::iterator it = sums.begin(); it != sums.end(); ++it)
+	{
+		if ( it->second != NULL )
+			delete it->second;
+		else
+			cout << "it doesn't exist!" << endl;
+	}
 
 }
 
@@ -74,7 +81,7 @@ void imageAveragerTest()
 
 	ImageAverager imageAverager = ImageAverager(periods);
 
-	long datasize = 500000;
+	long datasize = 10101;
 	at_32 *sample = new at_32[datasize];
 
 	imageAverager.initWithDatasize(datasize);
