@@ -529,29 +529,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int ch;
 	nodelay(stdscr, TRUE);
 
-	if (withDetector)
-	{
-		if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
-		if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
-		if ( status == DRV_SUCCESS ) status = StartAcquisition();
-	}
 
-	if ( status == DRV_SUCCESS ) {
-		move(0,0);
-		if ( withDetector )
-		{
-			printw("Run till abort started (press q or x to interrupt), width = %d, height = %d", width, height);
-		}
-		else
-		{
-			printw("Run till abort started (press q or x to interrupt), without detector");
-		}
-	} else {
-		nodelay(stdscr, FALSE);
-		endwin();
-		cout << "Run till abort failed, status=" << status << endl;
-		return false;
-	}
 
 	int counter=0;
 	int HWPisMoving;
@@ -573,6 +551,30 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		HWPTrigger.start();
 	HWPAngleContainer angleContainer;
 
+	if (withDetector)
+	{
+		if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
+			if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
+				if ( status == DRV_SUCCESS ) status = StartAcquisition();
+	}
+	
+	if ( status == DRV_SUCCESS ) {
+		move(0,0);
+		if ( withDetector )
+		{
+			printw("Run till abort started (press q or x to interrupt), width = %d, height = %d", width, height);
+		}
+		else
+		{
+			printw("Run till abort started (press q or x to interrupt), without detector");
+		}
+	} else {
+		nodelay(stdscr, FALSE);
+		endwin();
+		cout << "Run till abort failed, status=" << status << endl;
+		return false;
+	}
+	
 	while ( 1 ) {
 		ch = getch();
 	        if ( (ch=='q') || (ch=='x') ) {
