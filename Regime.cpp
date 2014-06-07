@@ -486,7 +486,7 @@ int Regime::apply()
 
 	if ( withHWPMotor )
 	{
-		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"]);
+		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"]);
 	}
 
 	return HWPStatus;

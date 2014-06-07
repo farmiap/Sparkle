@@ -25,7 +25,7 @@ void StandaRotationStage::printDeviceName()
 	cout << "Dev:" << deviceName << endl;
 }
 
-int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, double _convIntercept)
+int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv)
 {
 	if ( (deviceName.compare(_deviceName)==0) && (_convSlope==convSlope) && (_convIntercept==convIntercept) && (device!=device_undefined))
 	{
@@ -36,7 +36,8 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	deviceName = _deviceName;
 	convSlope = _convSlope;
 	convIntercept = _convIntercept;
-
+	directionInverted = _dirInv;
+	
 	if (device != device_undefined)
 	{
 		cout << "Closing previosly open device." << endl;
@@ -70,6 +71,11 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 
 	// activate backlash compensation
 	engine_settings.EngineFlags |= ENGINE_ANTIPLAY;
+	// If direction is inverted, most of the time stage will rotate in negative direction, therefore negative antiplay will be needed rarely, and vice versa.
+	if ( directionInverted ) 
+		engine_settings.Antiplay = -20;
+	else
+		engine_settings.Antiplay = 20;
 	// microstep fraction 8
 	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
 
@@ -121,6 +127,9 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 
 int StandaRotationStage::startMoveToAngle(double targetAngle)
 {
+	if ( directionInverted )
+		targetAngle = 360.0 - targetAngle;
+	
 	if ((result = get_status( device, &state )) != result_ok)
 	{
 		cout << "error getting status: " << error_string( result ) << endl;
@@ -141,6 +150,8 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 
 int StandaRotationStage::startMoveByAngle(double deltaAngle)
 {
+	if ( directionInverted )
+		deltaAngle = -deltaAngle;
 	double dpos = deltaAngle/convSlope;
 	int pos = (int)dpos;
 	int uPos = (int)(microstepFrac*(dpos-(double)pos));
@@ -160,6 +171,8 @@ int StandaRotationStage::getAngle(int *isMoving,double *angle)
 	double position = (double)state.CurPosition + ((double)state.uCurPosition)/(double)microstepFrac;
 	*angle = (position - convIntercept)*convSlope;
 	*angle = *angle-360.0*floor(*angle/360.0);
+	if (directionInverted)
+		*angle = 360.0 - *angle;
 	*isMoving = state.MoveSts;
 	return 1;
 }
