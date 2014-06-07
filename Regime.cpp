@@ -48,6 +48,8 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 	doubleParams["exp"] = 0.1;      // exposure
 
 	// HWP rotation unit section
+	intParams["HWPEnable"]=0;          // use HWP or not
+	intParams["HWPDirInv"]=0; 	// HWP direction. Seeing from detector to telescope: 1 - CCW, 0 - CW
 	stringParams["HWPDevice"] = "";
 	intParams["HWPPairNum"] = 1; // number of pairs in group
 	intParams["HWPGroupNum"] = 1; // number of groups
@@ -406,17 +408,19 @@ void Regime::commandHintsFill()
 	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
 
-	commandHints["HWPDevice"]  = "HWP motor device id (e.g. /dev/ximc/00000367)";
-	commandHints["HWPPairNum"] = "number of pairs in group: >= 1";
+	commandHints["HWPEnable"]      = "use HWP or not";
+	commandHints["HWPDirInv"]   = "HWP positive direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["HWPDevice"]   = "HWP motor device id (e.g. /dev/ximc/00000367)";
+	commandHints["HWPPairNum"]  = "number of pairs in group: >= 1";
 	commandHints["HWPGroupNum"] = "number of groups: >= 1";
-	commandHints["HWPStep"] = "step of HWP P.A. (degrees): > 0.0";
-	commandHints["HWPStart"] = "HWP P.A. start (degrees): > 0.0";
-	commandHints["HWPIntercept"] = "engine position when P.A. is zero (steps): > 0.0";
-	commandHints["HWPSlope"] = "degrees per engine step: > 0.0";
-	commandHints["HWPPeriod"] = "period between swithes (seconds): > 0.0";
+	commandHints["HWPStep"]     = "step of HWP P.A. (degrees): > 0.0";
+	commandHints["HWPStart"]    = "HWP P.A. start (degrees): > 0.0";
+	commandHints["HWPIntercept"]= "engine position when P.A. is zero (steps): > 0.0";
+	commandHints["HWPSlope"]    = "degrees per engine step: > 0.0";
+	commandHints["HWPPeriod"]   = "period between swithes (seconds): > 0.0";
 
-	commandHints["acq"]     = "start acquisition";
-	commandHints["prta"]    = "start run till abort";
+	commandHints["acq"]         = "start acquisition";
+	commandHints["prta"]        = "start run till abort";
 }
 
 
@@ -533,19 +537,22 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int motionStarted=0;
 	double HWPAngle;
 	
-	HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
-	msec_sleep(200.0);
-	do
-	{
-		HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-//		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
-		msec_sleep(50.0);
-	} while ( HWPisMoving );
-	msec_sleep(1000.0);
-	HWPRotationTrigger HWPTrigger(doubleParams["HWPPeriod"]);
-	if (withHWPMotor)
-		HWPTrigger.start();
+	HWPRotationTrigger HWPTrigger;
 	HWPAngleContainer angleContainer;
+	if ( withHWPMotor && intParams["HWPEnable"] )
+	{
+		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
+		msec_sleep(200.0);
+		do
+		{
+			HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+//		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
+			msec_sleep(50.0);
+		} while ( HWPisMoving );
+		msec_sleep(1000.0);
+		HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
+		HWPTrigger.start();
+	}
 
 	if (withDetector)
 	{
@@ -585,7 +592,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		}
 		else
 		{
-			if ( withHWPMotor ) {
+			if ( withHWPMotor && intParams["HWPEnable"] ) {
 				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
 				int currentStepNumber;
 				if ( HWPTrigger.check(&currentStepNumber) )
@@ -642,12 +649,15 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 			else
 			{
-				move(1,0);
-				printw(" frame no.: %d, angle %f",counter,HWPAngle);
-				msec_sleep(3.0);
+				if ( withHWPMotor && intParams["HWPEnable"] )
+				{
+					move(1,0);
+					printw(" frame no.: %d, angle %f",counter,HWPAngle);
+					msec_sleep(3.0);
+				}
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-			if ( withHWPMotor )
+			if ( withHWPMotor && intParams["HWPEnable"] )
 			{
 				angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
 				if (motionStarted)
@@ -663,7 +673,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
-	if ( withHWPMotor )
+	if ( withHWPMotor && intParams["HWPEnable"] )
 	{
 		cout << "writing HWP angle data" << endl;
 		angleContainer.cleanStatus();

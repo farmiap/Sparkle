@@ -11,8 +11,18 @@ HWPRotationTrigger::HWPRotationTrigger(double _period)
 	period = _period;
 }
 
+HWPRotationTrigger::HWPRotationTrigger()
+{
+	firstTime = 1;
+}
+
 HWPRotationTrigger::~HWPRotationTrigger()
 {
+}
+
+void HWPRotationTrigger::setPeriod(double _period)
+{
+	period = _period;
 }
 
 void HWPRotationTrigger::start()

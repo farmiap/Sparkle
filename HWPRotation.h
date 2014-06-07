@@ -16,9 +16,11 @@ private:
 	struct timeval prevTime;
 public:
 	HWPRotationTrigger(double _period);
+	HWPRotationTrigger();
 	~HWPRotationTrigger();
 
 	void start();
+	void setPeriod(double _period);
 	bool check(int *currentStep);
 };
 
