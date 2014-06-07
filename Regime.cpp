@@ -509,7 +509,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	width = intParams["imRight"]-intParams["imLeft"]+1;
 	height = intParams["imTop"]-intParams["imBottom"]+1;
 	long datasize = width*height;
-
+	
 	vector<int> periods;
 	periods.push_back(3);
 	periods.push_back(10);
@@ -519,46 +519,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	{
 		imageAverager.initWithDatasize(datasize);
 	}
-
+	
 	at_32 *data = new at_32[datasize];
 
-	initscr();
-	raw();
-	noecho();
 
-	int ch;
-	nodelay(stdscr, TRUE);
+	int ch = 'a';
 
-	if (withDetector)
-	{
-		if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
-		if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
-		if ( status == DRV_SUCCESS ) status = StartAcquisition();
-	}
 
-	if ( status == DRV_SUCCESS ) {
-		move(0,0);
-		if ( withDetector )
-		{
-			printw("Run till abort started (press q or x to interrupt), width = %d, height = %d", width, height);
-		}
-		else
-		{
-			printw("Run till abort started (press q or x to interrupt), without detector");
-		}
-	} else {
-		nodelay(stdscr, FALSE);
-		endwin();
-		cout << "Run till abort failed, status=" << status << endl;
-		return false;
-	}
 
 	int counter=0;
 	int HWPisMoving;
 	int HWPisMovingPrev=1;
 	int motionStarted=0;
 	double HWPAngle;
-
+	
 	HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
 	msec_sleep(200.0);
 	do
@@ -573,10 +547,40 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		HWPTrigger.start();
 	HWPAngleContainer angleContainer;
 
+	if (withDetector)
+	{
+		if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
+		if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
+		if ( status == DRV_SUCCESS ) status = StartAcquisition();
+	}
+	
+	initscr();
+	raw();
+	noecho();
+	nodelay(stdscr, TRUE);
+	
+	if ( status == DRV_SUCCESS ) {
+		move(0,0);
+		if ( withDetector )
+		{
+			printw("Run till abort started (press q or x to interrupt), width = %d, height = %d", width, height);
+		}
+		else
+		{
+			printw("Run till abort started (press q or x to interrupt), without detector");
+		}
+	} else {
+		nodelay(stdscr, FALSE);
+		endwin();
+		cout << "Run till abort failed, status=" << status << endl;
+		delete data;
+		return false;
+	}
+	
 	while ( 1 ) {
-		ch = getch();
-	        if ( (ch=='q') || (ch=='x') ) {
-	        	if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
+		if (counter>0) ch = getch();
+		if ( (ch=='q') || (ch=='x') ) {
+			if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
 			break;
 		}
 		else
@@ -595,7 +599,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					else
 					{
 						move(3,0);
-						printw("ATTENTION: HWP stage is skipping steps",counter);
+						printw("ATTENTION: HWP stage is skipping steps %d",counter);
 					}
 				}
 				else
@@ -668,6 +672,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		angleContainer.writeToFits((char*)pathes.getIntrvPath());
 	}
 
+	delete data;
 	return true;
 }
 
