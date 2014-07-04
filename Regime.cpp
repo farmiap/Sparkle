@@ -500,13 +500,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		cout << "This regime is not applied, run rapp" << endl;
 		return false;
 	}
-
+/*
 	if ( doubleParams["exp"] > 0.5 )
 	{
 		cout << "run till abort is possible only if exposure < 0.5 s" << endl;
 		return false;
 	}
-
+*/
 	int status = DRV_SUCCESS;
 
 	int width, height;
@@ -533,7 +533,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 	int counter=0;
 	int HWPisMoving;
-	int HWPisMovingPrev=1;
+	int HWPisMovingPrev=0;
 	int motionStarted=0;
 	double HWPAngle;
 	
@@ -616,7 +616,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 			if ( withDetector )
 			{
-				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(1000);
+				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
 				if ( avImg )
 				{
 					if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
@@ -653,17 +653,22 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				{
 					move(1,0);
 					printw(" frame no.: %d, angle %f",counter,HWPAngle);
-					msec_sleep(3.0);
+					msec_sleep(100.0);
 				}
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
 			if ( withHWPMotor && intParams["HWPEnable"] )
 			{
-				angleContainer.addStatusAndAngle((int)(HWPisMovingPrev!=0),HWPAngle);
 				if (motionStarted)
-					HWPisMovingPrev = 1;
+				{
+					angleContainer.addStatusAndAngle(1,HWPAngle);
+//					HWPisMovingPrev = 1;
+				}
 				else
-					HWPisMovingPrev = HWPisMoving;
+				{
+					angleContainer.addStatusAndAngle((int)(HWPisMoving!=0),HWPAngle);
+//					HWPisMovingPrev = HWPisMoving;
+				}
 			}
 			counter++;
 		}
@@ -676,7 +681,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	if ( withHWPMotor && intParams["HWPEnable"] )
 	{
 		cout << "writing HWP angle data" << endl;
-		angleContainer.cleanStatus();
+//		angleContainer.cleanStatus();
 		angleContainer.convertToIntervals();
 //		angleContainer.print();
 		angleContainer.writeToFits((char*)pathes.getIntrvPath());
