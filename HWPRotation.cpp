@@ -86,6 +86,12 @@ void HWPAngleContainer::print()
 	fclose(f2);
 }
 
+void HWPAngleContainer::writeHWPPositionsToFits(char* filename)
+{
+	writeIntervalsToASCIITableFITS(moved.size(),filename,moved,moved,angles);
+}
+
+
 void HWPAngleContainer::writeToFits(char* filename)
 {
 	writeIntervalsToASCIITableFITS(intrvBegins.size(),filename,intrvBegins,intrvEnds,intrvAngles);

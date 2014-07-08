@@ -125,6 +125,28 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	return ( result==result_ok );
 }
 
+int StandaRotationStage::startContiniousMotion()
+{
+	if ( directionInverted )
+	{
+		if ((result = command_left( device )) != result_ok)
+			cout << "error command move " << error_string( result ) << endl;
+	}
+	else
+	{
+		if ((result = command_right( device )) != result_ok)
+			cout << "error command move " << error_string( result ) << endl;
+	}
+	return 1;
+}
+
+int StandaRotationStage::stopContiniousMotion()
+{
+	if ((result = command_stop( device )) != result_ok)
+		cout << "error command move " << error_string( result ) << endl;
+	return 1;
+}
+
 int StandaRotationStage::startMoveToAngle(double targetAngle)
 {
 	if ( directionInverted )

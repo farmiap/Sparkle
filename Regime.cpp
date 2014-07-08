@@ -48,7 +48,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 	doubleParams["exp"] = 0.1;      // exposure
 
 	// HWP rotation unit section
-	intParams["HWPEnable"]=0;          // use HWP or not
+	intParams["HWPEnable"]=0;          // 0 - not to use HWP, 1 - use HWP in step mode, 2 - use in continious mode
 	intParams["HWPDirInv"]=0; 	// HWP direction. Seeing from detector to telescope: 1 - CCW, 0 - CW
 	stringParams["HWPDevice"] = "";
 	intParams["HWPPairNum"] = 1; // number of pairs in group
@@ -550,8 +550,16 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			msec_sleep(50.0);
 		} while ( HWPisMoving );
 		msec_sleep(1000.0);
-		HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
-		HWPTrigger.start();
+		
+		if ( intParams["HWPEnable"] == 1 )
+		{
+			HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
+			HWPTrigger.start();
+		}
+		else 
+		{
+			HWPMotor->startContiniousMotion();
+		}
 	}
 
 	if (withDetector)
@@ -588,6 +596,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		if (counter>0) ch = getch();
 		if ( (ch=='q') || (ch=='x') ) {
 			if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
+			if ( withHWPMotor && intParams["HWPEnable"] ) HWPMotor->stopContiniousMotion();
 			break;
 		}
 		else
@@ -595,23 +604,26 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			if ( withHWPMotor && intParams["HWPEnable"] ) {
 				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
 				int currentStepNumber;
-				if ( HWPTrigger.check(&currentStepNumber) )
+				if ( intParams["HWPEnable"] == 1)
 				{
-					move(2,0);
-					motionStarted = 1;
-					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
-					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
-					if ( !HWPisMoving )
-						HWPMotor->startMoveByAngle(nextStepValue);
+					if ( HWPTrigger.check(&currentStepNumber) )
+					{
+						move(2,0);
+						motionStarted = 1;
+						double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
+						printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
+						if ( !HWPisMoving )
+							HWPMotor->startMoveByAngle(nextStepValue);
+						else
+						{
+							move(3,0);
+							printw("ATTENTION: HWP stage is skipping steps %d",counter);
+						}
+					}
 					else
 					{
-						move(3,0);
-						printw("ATTENTION: HWP stage is skipping steps %d",counter);
+						motionStarted = 0;
 					}
-				}
-				else
-				{
-					motionStarted = 0;
 				}
 			}
 			if ( withDetector )
@@ -682,9 +694,16 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	{
 		cout << "writing HWP angle data" << endl;
 //		angleContainer.cleanStatus();
-		angleContainer.convertToIntervals();
 //		angleContainer.print();
-		angleContainer.writeToFits((char*)pathes.getIntrvPath());
+		if ( intParams["HWPEnable"] == 2 )
+		{
+			angleContainer.writeHWPPositionsToFits((char*)pathes.getHWPPosPath());
+		}
+		else
+		{
+			angleContainer.convertToIntervals();
+			angleContainer.writeToFits((char*)pathes.getIntrvPath());
+		}
 	}
 
 	delete data;
