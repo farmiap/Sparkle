@@ -697,12 +697,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //		angleContainer.print();
 		if ( intParams["HWPEnable"] == 2 )
 		{
-			angleContainer.writeHWPPositionsToFits((char*)pathes.getHWPPosPath());
+			angleContainer.writePositionsToFits((char*)pathes.getHWPPosPath());
 		}
 		else
 		{
 			angleContainer.convertToIntervals();
-			angleContainer.writeToFits((char*)pathes.getIntrvPath());
+			angleContainer.writeIntervalsToFits((char*)pathes.getIntrvPath());
 		}
 	}
 

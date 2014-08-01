@@ -41,10 +41,11 @@ public:
 	void print();
 	void cleanStatus();
 	void convertToIntervals();
-	void writeToFits(char* filename);
-	void writeHWPPositionsToFits(char* filename);
+	void writeIntervalsToFits(char* filename);
+	void writePositionsToFits(char* filename);
 };
 
+void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> colData);
 void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data);
 void printerror2( int status);
 

@@ -86,13 +86,13 @@ void HWPAngleContainer::print()
 	fclose(f2);
 }
 
-void HWPAngleContainer::writeHWPPositionsToFits(char* filename)
+void HWPAngleContainer::writePositionsToFits(char* filename)
 {
-	writeIntervalsToASCIITableFITS(moved.size(),filename,moved,moved,angles);
+	writePositionsToASCIITableFITS(moved.size(),filename,angles);
 }
 
 
-void HWPAngleContainer::writeToFits(char* filename)
+void HWPAngleContainer::writeIntervalsToFits(char* filename)
 {
 	writeIntervalsToASCIITableFITS(intrvBegins.size(),filename,intrvBegins,intrvEnds,intrvAngles);
 }
@@ -165,6 +165,67 @@ void HWPAngleContainer::convertToIntervals()
 	}
 
 }
+
+void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> colData)
+{
+	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
+	int status;
+	
+	char *ttype[1];
+	ttype[0] = (char *)malloc(10*sizeof(char));
+	sprintf(ttype[0],"VALUE");
+	
+	char *tform[1];
+	tform[0] = (char *)malloc(10*sizeof(char));
+	sprintf(tform[0],"E20.6");
+	
+	char *tunit[1];
+	tunit[0] = (char *)malloc(10*sizeof(char));
+	sprintf(tunit[0],"DEG");
+	
+	char extname[100];
+	sprintf(extname,"HWPPOSITIONS");
+	
+	//	int bitpix   =  FLOAT_IMG; /* 32-bit double pixel values       */
+	//	long naxis    =   2;  /* 2-dimensional image                            */
+	//	long naxes[2] = { nx, ny};   /* image is nx pixels wide by ny rows */
+	
+	/* allocate memory for the whole image */
+	//	array[0] = (long *)malloc( naxes[0] * naxes[1] * sizeof(long) );
+	
+	double *colArray;
+	colArray = (double *)malloc( nrows * sizeof(double) );
+	int counter = 0;
+	for(vector<double>::iterator it=colData.begin();it!=colData.end();++it)
+	{
+		colArray[counter] = *it;
+		counter++;
+	}
+	/* initialize pointers to the start of each row of the image */
+	//	for( ii=1; ii<naxes[1]; ii++ )
+	//		array[ii] = array[ii-1] + naxes[0];
+	
+	remove(filename);               /* Delete old file if it already exists */
+	
+	status = 0;         /* initialize status before calling fitsio routines */
+	
+	if (fits_create_file(&fptr, filename, &status)) /* create new FITS file */
+		printerror2( status );           /* call printerror if error occurs */
+		
+	if ( fits_create_tbl(fptr,  ASCII_TBL, nrows, 1, ttype, tform, tunit, extname, &status) )
+		printerror2( status );
+
+	if ( fits_write_col(fptr, TDOUBLE, 1, 1, 0, nrows, colArray, &status) )
+		printerror2( status );
+		
+	if ( fits_close_file(fptr, &status) )                /* close the file */
+		printerror2( status );
+		
+	//	printf("FITS writed: %s\n",filename);
+		
+	return;
+}
+
 
 void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data)
 {
