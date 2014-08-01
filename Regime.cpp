@@ -57,6 +57,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 	doubleParams["HWPStart"] = 0; // HWP P.A. (degrees)
 	doubleParams["HWPIntercept"] = 0.0; // engine position when P.A. is zero (steps)
 	doubleParams["HWPSlope"] = 0.015; // degrees per engine step
+	doubleParams["HWPSpeed"] = 1200.0; // speed (degrees per second)
 	doubleParams["HWPPeriod"] = 10.0; // period between swithes (seconds)
 
 	pathesCommands["fitsname"] = FITSNAME;
@@ -381,6 +382,12 @@ int Regime::validate()
 		return 0;
 	}
 
+	if ( doubleParams["HWPSpeed"]/doubleParams["HWPSlope"] > 2000.1 )
+	{
+		cout << "HWP speed is too high, validation failed" << endl;
+		return 0;
+	}
+
 	cout << "validation successful" << endl;
 
 	return 1;
@@ -417,6 +424,7 @@ void Regime::commandHintsFill()
 	commandHints["HWPStart"]    = "HWP P.A. start (degrees): > 0.0";
 	commandHints["HWPIntercept"]= "engine position when P.A. is zero (steps): > 0.0";
 	commandHints["HWPSlope"]    = "degrees per engine step: > 0.0";
+	commandHints["HWPSpeed"]    = "engine speed, (degrees per second)";
 	commandHints["HWPPeriod"]   = "period between swithes (seconds): > 0.0";
 
 	commandHints["acq"]         = "start acquisition";
@@ -486,7 +494,7 @@ int Regime::apply()
 
 	if ( withHWPMotor )
 	{
-		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"]);
+		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"],doubleParams["HWPSpeed"]);
 	}
 
 	return HWPStatus;

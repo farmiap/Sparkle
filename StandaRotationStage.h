@@ -13,6 +13,7 @@ private:
 	string deviceName;
 	double convSlope; 	// degrees per engine step
 	double convIntercept;	// engine position when P.A. is zero (steps)
+	double speed;		// engine speed, degrees per second
 	int microstepFrac;
 	int directionInverted;  // Looking from detector to telescope: 0 CCW, 1 CW
 	
@@ -27,7 +28,7 @@ public:
 	~StandaRotationStage();
 
 	void printDeviceName();
-	int initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv);
+	int initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double speed);
 	int startMoveToAngle(double deltaAngle);
 	int startMoveByAngle(double deltaAngle);
 	int startContiniousMotion();

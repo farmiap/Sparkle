@@ -25,7 +25,7 @@ void StandaRotationStage::printDeviceName()
 	cout << "Dev:" << deviceName << endl;
 }
 
-int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv)
+int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double _speed)
 {
 	if ( (deviceName.compare(_deviceName)==0) && (_convSlope==convSlope) && (_convIntercept==convIntercept) && (_dirInv==directionInverted) && (device!=device_undefined))
 	{
@@ -37,6 +37,7 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	convSlope = _convSlope;
 	convIntercept = _convIntercept;
 	directionInverted = _dirInv;
+	speed = _speed;
 	
 	if (device != device_undefined)
 	{
@@ -79,6 +80,8 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	// microstep fraction 8
 	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
 
+	engine_settings.NomSpeed = (int)(speed/convSlope);
+	
 	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
 	{
 		cout << "error setting engine settings: " << error_string( result ) << endl;
