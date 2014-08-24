@@ -508,13 +508,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		cout << "This regime is not applied, run rapp" << endl;
 		return false;
 	}
-/*
-	if ( doubleParams["exp"] > 0.5 )
+
+	if ( doubleParams["exp"] > 2.0 )
 	{
-		cout << "run till abort is possible only if exposure < 0.5 s" << endl;
+		cout << "run till abort is possible only if exposure < 2.0 s" << endl;
 		return false;
 	}
-*/
+
 	int status = DRV_SUCCESS;
 
 	int width, height;
