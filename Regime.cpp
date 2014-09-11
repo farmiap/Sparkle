@@ -239,6 +239,12 @@ int Regime::validate()
 		return 0;
 	}
 
+	if ((intParams["skip"]*intParams["exp"] < 0.8))
+	{
+		cout << "Validation failed. To prevent segm. fault during rta period of writing current image shouldn't be too short" << endl;
+		return 0;
+	}
+
 	if (intParams["numKin"] < 1)
 	{
 		cout << "number of kinetic cycles validation failed" << endl;
