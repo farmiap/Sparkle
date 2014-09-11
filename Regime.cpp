@@ -616,10 +616,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		else
 		{
 			if ( withHWPMotor && intParams["HWPEnable"] ) {
-				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-				int currentStepNumber;
 				if ( intParams["HWPEnable"] == 1)
 				{
+					HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+					int currentStepNumber;
 					if ( HWPTrigger.check(&currentStepNumber) )
 					{
 						move(2,0);
@@ -675,7 +675,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 			else
 			{
-				if ( withHWPMotor && intParams["HWPEnable"] )
+				if ( withHWPMotor && ( intParams["HWPEnable"]==1 ) )
 				{
 					move(1,0);
 					printw(" frame no.: %d, angle %f",counter,HWPAngle);
@@ -683,7 +683,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				}
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-			if ( withHWPMotor && intParams["HWPEnable"] )
+			if ( withHWPMotor && (intParams["HWPEnable"]==1) )
 			{
 				if (motionStarted)
 				{
@@ -704,20 +704,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
-	if ( withHWPMotor && intParams["HWPEnable"] )
+	if ( withHWPMotor && (intParams["HWPEnable"]==1) )
 	{
 		cout << "writing HWP angle data" << endl;
 //		angleContainer.cleanStatus();
 //		angleContainer.print();
-		if ( intParams["HWPEnable"] == 2 )
-		{
-			angleContainer.writePositionsToFits((char*)pathes.getHWPPosPath());
-		}
-		else
-		{
+//		if ( intParams["HWPEnable"] == 2 )
+//		{
+//			angleContainer.writePositionsToFits((char*)pathes.getHWPPosPath());
+//		}
+//		else
+//		{
 			angleContainer.convertToIntervals();
 			angleContainer.writeIntervalsToFits((char*)pathes.getIntrvPath());
-		}
+//		}
 	}
 
 	delete data;
