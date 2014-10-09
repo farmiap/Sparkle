@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 	float startTemp;
 
 	int c;
-##	int withDetector = 1;
+	int withDetector = 1;
 	int withHWPMotor = 1;
 
 	while ((c = getopt (argc, argv, "dmah")) != -1)
