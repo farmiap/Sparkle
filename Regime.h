@@ -1,6 +1,7 @@
 #ifndef REGIME_H
 #define REGIME_H
 
+#include <sys/time.h>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -16,7 +17,7 @@ enum
 {
 	FITSNAME = 1,
 	FITSDIR,
-	RTANAME
+	PRTANAME
 };
 
 enum
@@ -46,6 +47,8 @@ private:
 	Pathes pathes;
 	map<string, long> pathesCommands;
 	bool active;
+	
+	struct timeval prevRTATime;
 public:
 	int procCommand(string command);
 	int validate();

@@ -62,7 +62,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 
 	pathesCommands["fitsname"] = FITSNAME;
 	pathesCommands["fitsdir"] = FITSDIR;
-	pathesCommands["rtaname"] = RTANAME;
+	pathesCommands["prtaname"] = PRTANAME;
 
 	actionCommands["acq"] = ACQUIRE;
 	actionCommands["prta"] = RUNTILLABORT;
@@ -73,6 +73,9 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 
 	commandHintsFill();
 
+	struct timezone tz;
+	gettimeofday(&prevRTATime,&tz);
+	
 	active = FALSE;
 }
 
@@ -114,7 +117,7 @@ int Regime::procCommand(string command)
 			active = FALSE;
 			pathes.setDir(tokens[1]);
 			return 1;
-		case RTANAME:
+		case PRTANAME:
 			active = FALSE;
 			pathes.setRTA(tokens[1]);
 			return 1;
@@ -238,13 +241,13 @@ int Regime::validate()
 		cout << "rta skip validation failed" << endl;
 		return 0;
 	}
-
+/*
 	if ((intParams["skip"]*doubleParams["exp"] < 0.8))
 	{
 		cout << "Validation failed. To prevent segm. fault during rta period of writing current image shouldn't be too short" << endl;
 		return 0;
 	}
-
+*/
 	if (intParams["numKin"] < 1)
 	{
 		cout << "number of kinetic cycles validation failed" << endl;
@@ -659,6 +662,18 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				}
 				if ( counter%intParams["skip"] == 0)
 				{
+					struct timeval currRTATime;
+					struct timezone tz;
+					gettimeofday(&currRTATime,&tz);
+					double deltaTime = (double)(currRTATime.tv_sec - prevRTATime.tv_sec) + 1e-6*(double)(currRTATime.tv_usec - prevRTATime.tv_usec);
+					if ( deltaTime < 0.7 )  {
+						move(1,0);
+						printw(" frame no.: %d skipped",counter);
+						counter++;
+						continue;
+					}
+					prevRTATime = currRTATime;
+					
 					if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
 					if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
 					move(1,0);
@@ -670,7 +685,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					case DRV_NO_NEW_DATA: printw("no new data"); break;
 					default: printw("unknown error");
 					}
-					printw(" frame no.: %d",counter);
+					printw(" frame no.: %d %f",counter,deltaTime);
 				}
 			}
 			else

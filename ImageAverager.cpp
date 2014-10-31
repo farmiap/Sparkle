@@ -23,8 +23,8 @@ ImageAverager::~ImageAverager()
 	{
 		if ( it->second != NULL )
 			delete it->second;
-		else
-			cout << "it doesn't exist!" << endl;
+//		else
+//			cout << "it doesn't exist!" << endl;
 	}
 
 }
@@ -36,8 +36,8 @@ void ImageAverager::initWithDatasize(long inDatasize)
 	{
 		if ( it->second == NULL )
 			it->second = new double[datasize];
-		else
-			cout << "it exists!" << endl;
+//		else
+//			cout << "it exists!" << endl;
 		for(long i = 0; i < datasize; i++)
 			it->second[i] = 0.0;
 	}
