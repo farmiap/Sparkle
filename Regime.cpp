@@ -424,7 +424,7 @@ void Regime::commandHintsFill()
 	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
 
-	commandHints["HWPEnable"]      = "use HWP or not";
+	commandHints["HWPEnable"]      = "0 - don't use HWP, 1 - step mode, 2 - continous rotation mode.";
 	commandHints["HWPDirInv"]   = "HWP positive direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
 	commandHints["HWPDevice"]   = "HWP motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["HWPPairNum"]  = "number of pairs in group: >= 1";
@@ -526,6 +526,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 	int status = DRV_SUCCESS;
 
+	float exposure;
+	float accum;
+	float kinetic;
+	
+	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+	
 	int width, height;
 	width = intParams["imRight"]-intParams["imLeft"]+1;
 	height = intParams["imTop"]-intParams["imBottom"]+1;
@@ -545,13 +551,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 
 	int ch = 'a';
-
-
-
 	int counter=0;
 	int HWPisMoving;
 	int HWPisMovingPrev=0;
 	int motionStarted=0;
+	
+	int acc,kin;
+	
 	double HWPAngle;
 	
 	HWPRotationTrigger HWPTrigger;
@@ -646,6 +652,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			if ( withDetector )
 			{
 				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
+				if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
+				move(6,0);
+				printw("acc num %d, kin num %d",acc,kin);
+				
+				struct timeval currExpTime;
+				struct timezone tz;
+				gettimeofday(&currExpTime,&tz);
+				double deltaTime = (double)(currExpTime.tv_sec - prevExpTime.tv_sec) + 1e-6*(double)(currExpTime.tv_usec - prevExpTime.tv_usec);
+				if ( deltaTime > kinetic*1.8 )  {
+					move(5,0);
+					printw("frames skipping is possible: delta %.2f ms, exp %.2f ms",deltaTime*1e+3,kinetic*1e+3);
+				}
+				prevExpTime = currExpTime;
+				
 				if ( avImg )
 				{
 					if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
@@ -702,12 +722,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			{
 				if (motionStarted)
 				{
-					angleContainer.addStatusAndAngle(1,HWPAngle);
+					angleContainer.addStatusAndAngle(counter,1,HWPAngle);
 //					HWPisMovingPrev = 1;
 				}
 				else
 				{
-					angleContainer.addStatusAndAngle((int)(HWPisMoving!=0),HWPAngle);
+					angleContainer.addStatusAndAngle(counter,(int)(HWPisMoving!=0),HWPAngle);
 //					HWPisMovingPrev = HWPisMoving;
 				}
 			}
@@ -731,6 +751,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //		else
 //		{
 			angleContainer.convertToIntervals();
+			angleContainer.print();
 			angleContainer.writeIntervalsToFits((char*)pathes.getIntrvPath());
 //		}
 	}
@@ -752,6 +773,38 @@ bool Regime::acquire()
 		cout << "This command doesn't work without detector" << endl;
 		return false;
 	}
+
+	HWPRotationTrigger HWPTrigger;
+	HWPAngleContainer angleContainer;
+	
+	int HWPisMoving;
+	int HWPisMovingPrev=0;
+	int motionStarted=0;
+	double HWPAngle;
+	
+	if ( withHWPMotor && intParams["HWPEnable"] )
+	{
+		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
+		msec_sleep(200.0);
+		do
+		{
+			HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+		//		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
+			msec_sleep(50.0);
+		} while ( HWPisMoving );
+		msec_sleep(1000.0);
+	
+		if ( intParams["HWPEnable"] == 1 )
+		{
+			HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
+			HWPTrigger.start();
+		}
+		else 
+		{
+			HWPMotor->startContiniousMotion();
+		}
+	}
+
 
 	initscr();
 	raw();
@@ -786,7 +839,7 @@ bool Regime::acquire()
 		}
 		else
 		{
-			usleep(300000);
+			usleep(100000);
 			int acc,kin;
 			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
 			move(1,0);
@@ -794,6 +847,43 @@ bool Regime::acquire()
 			int state;
 			if ( status == DRV_SUCCESS ) status = GetStatus(&state);
 			if ( state == DRV_IDLE) break;
+			
+			if ( withHWPMotor && intParams["HWPEnable"] ) {
+				if ( intParams["HWPEnable"] == 1)
+				{
+					HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+					int currentStepNumber;
+					if ( HWPTrigger.check(&currentStepNumber) )
+					{
+						move(2,0);
+						motionStarted = 1;
+						double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
+						printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",kin,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
+						if ( !HWPisMoving )
+							HWPMotor->startMoveByAngle(nextStepValue);
+						else
+						{
+							move(3,0);
+							printw("ATTENTION: HWP stage is skipping steps %d",kin);
+						}
+					}
+					else
+					{
+						motionStarted = 0;
+					}
+					// Logic: if HWP was moving in the end of previous step, it moved also during current step.
+					if (motionStarted)
+					{
+						angleContainer.addStatusAndAngle(kin,1,HWPAngle);
+						//					HWPisMovingPrev = 1;
+					}
+					else
+					{
+						angleContainer.addStatusAndAngle(kin,(int)(HWPisMoving!=0),HWPAngle);
+						//					HWPisMovingPrev = HWPisMoving;
+					}
+				}
+			}
 		}
 	}
 	werase(stdscr);
@@ -801,6 +891,16 @@ bool Regime::acquire()
 	refresh();
 	endwin();
 
+	if ( withHWPMotor && (intParams["HWPEnable"]==1) )
+	{
+		cout << "writing HWP angle data" << endl;
+
+		angleContainer.convertToIntervals();
+		angleContainer.print();
+		angleContainer.writeIntervalsToFits((char*)pathes.getIntrvPath());
+	}
+	
+	
 	return true;
 }
 

@@ -57,8 +57,9 @@ HWPAngleContainer::~HWPAngleContainer()
 {
 }
 
-void HWPAngleContainer::addStatusAndAngle(int _status,double _angle)
+void HWPAngleContainer::addStatusAndAngle(int _number,int _status,double _angle)
 {
+	numbers.push_back(_number);
 	moved.push_back(_status);
 	angles.push_back(_angle);
 }
@@ -67,10 +68,12 @@ void HWPAngleContainer::print()
 {
 	FILE *f=fopen("temp.dat","w");
 	vector<int>::iterator itm = moved.begin();
+	vector<int>::iterator itn = numbers.begin();
 	for(vector<double>::iterator it=angles.begin();it!=angles.end();++it)
 	{
-		fprintf(f,"%d %f\n",*itm,*it);
+		fprintf(f,"%d %d %f\n",*itn,*itm,*it);
 		itm++;
+		itn++;
 	}
 	fclose(f);
 
@@ -126,6 +129,7 @@ void HWPAngleContainer::convertToIntervals()
 	intrvAngles.erase(intrvAngles.begin(),intrvAngles.end());
 
 	vector<int>::iterator itm = moved.begin();
+	vector<int>::iterator itn = numbers.begin();
 	bool inInterval = 0;
 	int intervalBegin;
 	int intervalEnd;
@@ -137,7 +141,7 @@ void HWPAngleContainer::convertToIntervals()
 		{
 			if (*itm == 0)
 			{
-				intervalBegin = counter;
+				intervalBegin = *itn;
 				intervalAngle = *it;
 				inInterval = 1;
 			}
@@ -146,7 +150,7 @@ void HWPAngleContainer::convertToIntervals()
 		{
 			if (*itm == 1)
 			{
-				intervalEnd = counter-1;
+				intervalEnd = *itn-1;
 				intrvBegins.push_back(intervalBegin);
 				intrvEnds.push_back(intervalEnd);
 				intrvAngles.push_back(intervalAngle);
@@ -154,11 +158,13 @@ void HWPAngleContainer::convertToIntervals()
 			}
 		}
 		itm++;
+		itn++;
 		counter++;
 	}
+	itn--;
 	if (inInterval)
 	{
-		intervalEnd = counter-1;
+		intervalEnd = *itn;
 		intrvBegins.push_back(intervalBegin);
 		intrvEnds.push_back(intervalEnd);
 		intrvAngles.push_back(intervalAngle);

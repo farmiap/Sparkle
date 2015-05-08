@@ -49,6 +49,7 @@ private:
 	bool active;
 	
 	struct timeval prevRTATime;
+	struct timeval prevExpTime;
 public:
 	int procCommand(string command);
 	int validate();

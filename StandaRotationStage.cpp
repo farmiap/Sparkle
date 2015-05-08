@@ -46,12 +46,12 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 			cout << "error closing device " << error_string( result ) << endl;
 	}
 
-	cout << "Trying to open device" << endl;
+	cout << "Trying to open device" << _deviceName << endl;
 
 	device = open_device( deviceName.c_str() );
 	if (device == device_undefined)
 	{
-		cout << "error opening device\n" << endl;
+		cout << "error opening device\n" << _deviceName << endl;
 		return 0;
 	}
 
