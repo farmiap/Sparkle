@@ -44,7 +44,8 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 	intParams["imRight"] = 512;     // image right side
 	intParams["imBottom"] = 1;      // image bottom side
 	intParams["imTop"] = 512;       // image top side
-
+	intParams["bin"] = 1;		// binning: >=1
+	
 	doubleParams["exp"] = 0.1;      // exposure
 
 	// HWP rotation unit section
@@ -385,6 +386,13 @@ int Regime::validate()
 		return 0;
 	}
 
+	if (( intParams["bin"] < 1 ) || ( intParams["bin"] > 64 ))
+	{
+		cout << "binning validation failed" << endl;
+		return 0;
+	}
+
+
 	if (( doubleParams["exp"] < 0.001 ) || ( doubleParams["exp"] > 1000.0 ))
 	{
 		cout << "exposure time validation failed" << endl;
@@ -419,7 +427,8 @@ void Regime::commandHintsFill()
 	commandHints["imRight"] = "image right side: 1-512";
 	commandHints["imBottom"]= "image bottom side: 1-512";
 	commandHints["imTop"]   = "image top side: 1-512";
-
+	commandHints["bin"]   = "binning: 1-64";
+	
 	commandHints["EMGain"]  = "EM gain: 1-1000";
 	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
@@ -485,7 +494,7 @@ int Regime::apply()
 				if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
 			}
 		}
-		if ( status == DRV_SUCCESS ) status = SetImage(1,1,intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
+		if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
 	}
 
 	if ( status == DRV_SUCCESS )
@@ -530,12 +539,14 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	float accum;
 	float kinetic;
 	
-	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
-	
+	if ( withDetector)
+	{
+		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+	}
 	int width, height;
-	width = intParams["imRight"]-intParams["imLeft"]+1;
-	height = intParams["imTop"]-intParams["imBottom"]+1;
-	long datasize = width*height;
+	width = floor(((double)intParams["imRight"]-(double)intParams["imLeft"]+1)/(double)intParams["bin"]);
+	height = floor(((double)intParams["imTop"]-(double)intParams["imBottom"]+1)/(double)intParams["bin"]);
+	long datasize = width*height; // do not divide by binning, segm. fault instead!
 	
 	vector<int> periods;
 	periods.push_back(3);
@@ -556,7 +567,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int HWPisMovingPrev=0;
 	int motionStarted=0;
 	
-	int acc,kin;
+	int acc=0;
+	int kin=0;
 	
 	double HWPAngle;
 	
@@ -722,12 +734,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			{
 				if (motionStarted)
 				{
-					angleContainer.addStatusAndAngle(counter,1,HWPAngle);
+					angleContainer.addStatusAndAngle(kin,1,HWPAngle);
 //					HWPisMovingPrev = 1;
 				}
 				else
 				{
-					angleContainer.addStatusAndAngle(counter,(int)(HWPisMoving!=0),HWPAngle);
+					angleContainer.addStatusAndAngle(kin,(int)(HWPisMoving!=0),HWPAngle);
 //					HWPisMovingPrev = HWPisMoving;
 				}
 			}
