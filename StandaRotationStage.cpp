@@ -25,6 +25,24 @@ void StandaRotationStage::printDeviceName()
 	cout << "Dev:" << deviceName << endl;
 }
 
+int StandaRotationStage::setSpeed(double _speed)
+{
+	cout << "setting speed!" << _speed << endl;
+	if ((result = get_engine_settings( device, &engine_settings )) != result_ok)
+	{
+		cout << "error getting engine settings: " << error_string( result ) << endl;
+		return 0;
+	}
+	engine_settings.NomSpeed = (int)(_speed/convSlope);
+	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
+	{
+		cout << "error setting engine settings: " << error_string( result ) << endl;
+		return 0;
+	}
+	return 1;
+	
+}
+
 int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double _speed)
 {
 	if ( (deviceName.compare(_deviceName)==0) && (_convSlope==convSlope) && (_convIntercept==convIntercept) && (_dirInv==directionInverted) && (_speed==speed) && (device!=device_undefined))
@@ -99,6 +117,21 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 		cout << "error setting edges settings: " << error_string( result ) << endl;
 		return 0;
 	}
+/*
+	home_settings_t home_settings;
+	if ((result = get_home_settings( device, &home_settings )) != result_ok)
+	{
+		cout << "error getting home settings: " << error_string( result ) << endl;
+		return 0;
+	}
+	home_settings.HomeFlags |= HOME_MV_SEC_EN;	
+	home_settings.HomeFlags |= HOME_STOP_FIRST_LIM;
+	if ((result = set_home_settings( device, &home_settings )) != result_ok)
+	{
+		cout << "error setting home settings: " << error_string( result ) << endl;
+		return 0;
+	}
+*/	
 	cout << "finding home" << endl;
 	if ((result = command_home( device )) != result_ok)
 	{

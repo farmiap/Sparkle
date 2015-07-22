@@ -10,6 +10,7 @@
 
 #include "Pathes.h"
 #include "StandaRotationStage.h"
+#include "StandaActuator.h"
 
 using namespace std;
 
@@ -42,14 +43,19 @@ private:
 	int withDetector;
 	int withHWPMotor;
 
+	int HWPBand;
+	
 	StandaRotationStage *HWPMotor;
-
+	StandaActuator *HWPActuator;
+	
 	Pathes pathes;
 	map<string, long> pathesCommands;
 	bool active;
 	
 	struct timeval prevRTATime;
 	struct timeval prevExpTime;
+	
+	int switchHWP();
 public:
 	int procCommand(string command);
 	int validate();
@@ -65,7 +71,7 @@ public:
 	void print();
 
 	Regime();
-	Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor);
+	Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator);
 	~Regime();
 };
 

@@ -22,13 +22,14 @@ private:
 	status_t state;
 	engine_settings_t engine_settings;
 	edges_settings_t edges_settings;
-
+	
 public:
 	StandaRotationStage();
 	~StandaRotationStage();
 
 	void printDeviceName();
 	int initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double speed);
+	int setSpeed(double _speed);
 	int startMoveToAngle(double deltaAngle);
 	int startMoveByAngle(double deltaAngle);
 	int startContiniousMotion();

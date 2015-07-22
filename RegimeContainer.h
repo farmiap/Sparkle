@@ -6,6 +6,7 @@
 
 #include "Regime.h"
 #include "StandaRotationStage.h"
+#include "StandaActuator.h"
 
 #define DEFAULT_REGIME "default"
 
@@ -31,13 +32,14 @@ private:
 	map<string, Regime> regimes;
 	string currentName;
 	StandaRotationStage *HWPMotor;
-
+	StandaActuator *HWPActuator;
+	
 	int withDetector;
 	int withHWPMotor;
 	void addRegime(string name);
 public:
 	RegimeContainer();
-	RegimeContainer(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor);
+	RegimeContainer(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator);
 	~RegimeContainer();
 	int procCommand(string command);
 	string currentRegimeName();

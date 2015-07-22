@@ -49,8 +49,9 @@ int main(int argc, char* argv[])
 		}
 
 	StandaRotationStage HWPMotor;
+	StandaActuator HWPActuator;
 
-	RegimeContainer regimeContainer(withDetector,withHWPMotor,&HWPMotor);
+	RegimeContainer regimeContainer(withDetector,withHWPMotor,&HWPMotor,&HWPActuator);
 
 	if ( withDetector )
 	{

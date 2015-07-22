@@ -13,7 +13,7 @@ RegimeContainer::RegimeContainer()
 
 }
 
-RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor)
+RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator)
 {
 	regimeCommands["rlist"] = RLIST;
 	regimeCommands["rnew"]  = RNEW;
@@ -28,8 +28,9 @@ RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,StandaRotat
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
 	HWPMotor = _HWPMotor;
-
-	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor,HWPMotor);
+	HWPActuator = _HWPActuator;
+	
+	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor,HWPMotor,HWPActuator);
 	currentName = DEFAULT_REGIME;
 }
 
@@ -75,7 +76,7 @@ int RegimeContainer::procCommand(string command)
 				break;
 			}
 			cout << "new regime: " << tokens[1] << endl;
-			regimes[tokens[1]] = Regime(withDetector,withHWPMotor,HWPMotor);
+			regimes[tokens[1]] = Regime(withDetector,withHWPMotor,HWPMotor,HWPActuator);
 		}
 		break;
 		case RMOD:
@@ -203,7 +204,7 @@ int RegimeContainer::procCommand(string command)
 
 			string newname = ftokens[0];
 
-			Regime regime(withDetector,withHWPMotor,HWPMotor);
+			Regime regime(withDetector,withHWPMotor,HWPMotor,HWPActuator);
 			while ( getline(file,str) )
 				regime.procCommand(str);
 			regimes[newname] = regime;

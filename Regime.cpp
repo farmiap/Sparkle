@@ -20,13 +20,14 @@ Regime::Regime()
 {
 }
 
-Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor)
+Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator)
 {
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
 
 	HWPMotor = _HWPMotor;
-
+	HWPActuator = _HWPActuator;
+	
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
@@ -61,6 +62,15 @@ Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMoto
 	doubleParams["HWPSpeed"] = 1200.0; // speed (degrees per second)
 	doubleParams["HWPPeriod"] = 10.0; // period between swithes (seconds)
 
+	// HWP switching
+	stringParams["HWPActuatorDevice"] = "";
+	doubleParams["HWPActuatorSpeed"] = 100.0;
+	intParams["HWPActuatorPushedPosition"] = 0.0; // position where actuator is pushed (steps)
+	doubleParams["HWPSwitchingAngle"] = 0.0; // start position of HWP rotator before performing switch, degrees
+	doubleParams["HWPSwitchingMotion"] = 0.0; // motion of HWP rotator before performing switch, degrees 
+	doubleParams["HWPSwitchingSpeed"] = 20.0; // speed of motion of HWP rotator performing switch, degrees/sec
+	intParams["HWPBand"] = 0; // current HWP band
+	
 	pathesCommands["fitsname"] = FITSNAME;
 	pathesCommands["fitsdir"] = FITSDIR;
 	pathesCommands["prtaname"] = PRTANAME;
@@ -405,6 +415,30 @@ int Regime::validate()
 		return 0;
 	}
 
+	if ( doubleParams["HWPActuatorSpeed"] > 2000.1 )
+	{
+		cout << "HWP actuator speed is too high, validation failed" << endl;
+		return 0;
+	}
+
+	if ( intParams["HWPActuatorPushedPosition"] > 0 )
+	{
+		cout << "HWP actuator pushed position should be negative, validation failed" << endl;
+		return 0;
+	}
+
+	if ( ( doubleParams["HWPSwitchingSpeed"] < 0 ) || ( doubleParams["HWPSwitchingSpeed"] > 120 ) )
+	{
+		cout << "HWP switching speed position should be positive, and less than 120 deg/sec, validation failed" << endl;
+		return 0;
+	}
+
+	if ( ( intParams["HWPBand"] != 0 ) && ( intParams["HWPBand"] != 1 ) && ( intParams["HWPBand"] != 2 ) )
+	{
+		cout << "HWP band should be 0, 1, 2" << endl;
+		return 0;
+	}
+	
 	cout << "validation successful" << endl;
 
 	return 1;
@@ -445,6 +479,14 @@ void Regime::commandHintsFill()
 	commandHints["HWPSpeed"]    = "engine speed, (degrees per second)";
 	commandHints["HWPPeriod"]   = "period between swithes (seconds): > 0.0";
 
+	commandHints["HWPActuatorDevice"]   = "HWP actuator device id (e.g. /dev/ximc/00000367)";
+	commandHints["HWPActuatorSpeed"]   = "HWP actuator speed (steps/sec) > 0.0";
+	commandHints["HWPActuatorPushedPosition"]   = "HWP actuator pushed position (steps) < 0";
+	commandHints["HWPSwitchingAngle"] = "start position of HWP rotator before performing switch, degrees";
+	commandHints["HWPSwitchingMotion"] = "motion of HWP rotator before performing switch, degrees";
+	commandHints["HWPSwitchingSpeed"] = "speed of motion of HWP rotator performing switch, degrees/sec";
+	commandHints["HWPBand"] = "Current HWP code 0, 1, 2";
+	
 	commandHints["acq"]         = "start acquisition";
 	commandHints["prta"]        = "start run till abort";
 }
@@ -508,14 +550,41 @@ int Regime::apply()
 		return 0;
 	}
 
-	int HWPStatus = 0;
+	int HWPRotationStatus = 0;
 
 	if ( withHWPMotor )
 	{
-		HWPStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"],doubleParams["HWPSpeed"]);
+		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"],doubleParams["HWPSpeed"]);
 	}
 
-	return HWPStatus;
+
+	int HWPActuatorStatus = 0;
+	
+	HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"]);
+
+	
+	cout << "current band " << HWPBand << " desired band " << intParams["HWPBand"] << endl;
+	if ( HWPBand!=intParams["HWPBand"] ) 
+	{
+		if ( HWPBand == 0 )
+		{
+			if ( intParams["HWPBand"] == 1 ) switchHWP();
+			if ( intParams["HWPBand"] == 2 ) {switchHWP();switchHWP();}
+		}
+		if ( HWPBand == 1 )
+		{
+			if ( intParams["HWPBand"] == 2 ) switchHWP();
+			if ( intParams["HWPBand"] == 0 ) {switchHWP();switchHWP();}
+		}
+		if ( HWPBand == 2 )
+		{
+			if ( intParams["HWPBand"] == 0 ) switchHWP();
+			if ( intParams["HWPBand"] == 1 ) {switchHWP();switchHWP();}
+		}
+		HWPBand = intParams["HWPBand"];
+	}
+	
+	return HWPRotationStatus;
 }
 
 bool Regime::runTillAbort(bool avImg, bool doSpool)
@@ -978,6 +1047,62 @@ bool Regime::printTimings()
 	return ( status == DRV_SUCCESS );
 }
 
+int Regime::switchHWP()
+{
+	HWPMotor->startMoveToAngle(doubleParams["HWPSwitchingAngle"]);
+
+	cout << "Setting initial position ... " << endl;
+	
+	int isMovingFlag = 0;
+	double currentAngle = 0.0;
+	int currentPosition = 0;
+	while (isMovingFlag)
+	{
+		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
+		usleep(100000);
+	}
+	cout << "done." << endl;
+	usleep(500000);
+
+	HWPActuator->startMoveToPosition(intParams["HWPActuatorPushedPosition"]);
+	usleep(500000);
+	isMovingFlag = 1;
+	while (isMovingFlag)
+	{
+		HWPActuator->getPosition(&isMovingFlag,&currentPosition);
+		usleep(100000);
+	}
+	cout << "done." << endl;
+	
+	cout << "Switching ... " << endl;
+
+	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
+	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion"]);
+	isMovingFlag = 1;
+	while (isMovingFlag)
+	{
+		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
+		usleep(100000);
+	}
+	cout << "done." << endl;
+	HWPMotor->setSpeed(doubleParams["HWPSpeed"]);
+	
+	cout << "Actuator push back ... " << endl;
+	HWPActuator->startMoveToPosition(0);
+	usleep(500000);
+	isMovingFlag = 1;
+	while (isMovingFlag)
+	{
+		HWPActuator->getPosition(&isMovingFlag,&currentPosition);
+		usleep(100000);
+	}
+	cout << "done." << endl;
+	
+	
+	return 1;
+}
+
+
 bool setTemp(double temper, bool waitForStab)
 {
 
@@ -1056,7 +1181,6 @@ bool checkTempInside(double lowerLim, double upperLim)
 //	if ( state != DRV_TEMPERATURE_STABILIZED ) cout << "temperature is not stabilized" << endl;
 	return (( lowerLim < temp ) && (temp < upperLim) && ( state==DRV_TEMPERATURE_STABILIZED ));
 }
-
 
 
 bool finalize(int _withDetector,int _withHWPMotor,float startTemp)
