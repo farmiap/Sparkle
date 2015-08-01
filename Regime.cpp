@@ -20,14 +20,16 @@ Regime::Regime()
 {
 }
 
-Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator)
+Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator)
 {
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
-	withHWPMotor = _withHWPAct;
-
+	withHWPAct = _withHWPAct;
+	withMirrorAct = _withMirrorAct;
+	
 	HWPMotor = _HWPMotor;
 	HWPActuator = _HWPActuator;
+	mirrorActuator = _mirrorActuator;
 	
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
@@ -90,6 +92,20 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotatio
 	doubleParams["HWPSwitchingSpeed"] = 20.0; // speed of motion of HWP rotator performing switch, degrees/sec
 	intParams["HWPBand"] = 0; // current HWP band
 	
+	// moving mirror control (prefocal group)
+	stringParams["mirrorDevice"] = "";
+	intParams["mirrorSpeed"] = 1000;  // speed of mirror motor, steps/sec
+	intParams["mirror"] = 0;  // 0 - retracted, 1 - linear polarizer inserted, 2 - calibration/finder, 3 - auto
+	intParamsValues["mirror"]["off"] = MIRROROFF;
+	intParamsValues["mirror"]["linpol"] = MIRRORLINPOL;
+	intParamsValues["mirror"]["calibr"] = MIRRORFINDER;
+	intParamsValues["mirror"]["find"] = MIRRORFINDER;
+	intParamsValues["mirror"]["auto"] = MIRRORAUTO;
+	intParams["mirrorPosOff"] = 0;  // position of moving mirror when it is out of the beam
+	intParams["mirrorPosLinpol"] = 0;  // position of moving mirror when the linear polarizer is in the beam
+	intParams["mirrorPosFinder"] = 0;  // position of moving mirror when the finder and calibration source are in the beam
+	doubleParams["mirrorBeamTime"] = 20.0; // period of time for which the linear polarizer is inserted into the beam in beginning and end of series (activated by "mirror auto" command)
+
 	pathesCommands["fitsname"] = FITSNAME;
 	pathesCommands["fitsdir"] = FITSDIR;
 	pathesCommands["prtaname"] = PRTANAME;
@@ -467,6 +483,37 @@ int Regime::validate()
 		cout << "HWP band should be 0, 1, 2" << endl;
 		return 0;
 	}
+
+	if ( ( intParams["mirror"] != 0 ) && ( intParams["mirror"] != 1 ) && ( intParams["mirror"] != 2 ) && ( intParams["mirror"] != 3 ) )
+	{
+		cout << "Mirror can be: 0 - retracted, 1 - linear polarizer inserted, 2 - calibration/finder inserted, 3 - auto. Validation failed." << endl;
+		return 0;
+	}
+
+	if ( ( intParams["mirrorPosOff"] > 20000 ) || ( intParams["mirrorPosOff"] < 100 ) )
+	{
+		cout << "Mirror position off should be between 100 and 20000, validation failed" << endl;
+		return 0;
+	}
+	
+	if ( ( intParams["mirrorPosLinpol"] > 20000 ) || ( intParams["mirrorPosLinpol"] < 100 ) )
+	{
+		cout << "Mirror position linpol should be between 100 and 20000, validation failed" << endl;
+		return 0;
+	}
+	
+	if ( ( intParams["mirrorPosFinder"] > 20000 ) || ( intParams["mirrorPosFinder"] < 100 ) )
+	{
+		cout << "Mirror position finder should be between 100 and 20000, validation failed" << endl;
+		return 0;
+	}
+	
+
+	if ( intParams["mirrorSpeed"] > 2000 )
+	{
+		cout << "Mirror actuator speed is too high, validation failed" << endl;
+		return 0;
+	}
 	
 	cout << "validation successful" << endl;
 
@@ -617,7 +664,42 @@ int Regime::apply()
 	{
 		cout << "HWP band switching is not possible, HWP actuator or/and motor is off" << endl;
 	}	
+
+	int mirrorActuatorStatus = 0;
+	if ( withMirrorAct ) 
+	{
+		mirrorActuatorStatus = mirrorActuator->initializeActuator(stringParams["mirrorDevice"],doubleParams["mirrorSpeed"]);
+
+		switch ( intParams["mirror"] )
+		{
+		case MIRROROFF:
+			mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
+			break;
+		case MIRRORLINPOL:
+			mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
+			break;
+		case MIRRORFINDER:
+			mirrorActuator->startMoveToPosition(intParams["mirrorPosFinder"]);
+			break;
+		case MIRRORAUTO:
+			mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
+			break;
+		default :
+			cout << "This is not normal. Validation didn't do its work." << endl;
+			break;
+		}
+		
+		usleep(500000);
+		int isMovingFlag=1;
+		int currentPosition;
+		while (isMovingFlag)
+		{
+			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
+			usleep(100000);
+		}
+	}
 	
+		
 	return HWPRotationStatus;
 }
 

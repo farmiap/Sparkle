@@ -31,6 +31,15 @@ enum
 	TESTNCURSES
 };
 
+enum
+{
+	MIRROROFF = 0,
+	MIRRORLINPOL,
+	MIRRORFINDER,
+	MIRRORAUTO
+};
+
+
 class Regime
 {
 private:
@@ -46,11 +55,13 @@ private:
 	int withDetector;
 	int withHWPMotor;
 	int withHWPAct;
-
+	int withMirrorAct;
+	
 	int HWPBand;
 	
 	StandaRotationStage *HWPMotor;
 	StandaActuator *HWPActuator;
+	StandaActuator *mirrorActuator;
 	
 	Pathes pathes;
 	map<string, long> pathesCommands;
@@ -75,7 +86,7 @@ public:
 	void print();
 
 	Regime();
-	Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator);
+	Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator);
 	~Regime();
 };
 

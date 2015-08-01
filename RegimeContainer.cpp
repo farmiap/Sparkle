@@ -13,7 +13,7 @@ RegimeContainer::RegimeContainer()
 
 }
 
-RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator)
+RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator)
 {
 	regimeCommands["rlist"] = RLIST;
 	regimeCommands["rnew"]  = RNEW;
@@ -28,10 +28,13 @@ RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHW
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
 	withHWPAct = _withHWPAct;
+	withMirrorAct = _withMirrorAct;
+	
 	HWPMotor = _HWPMotor;
 	HWPActuator = _HWPActuator;
+	mirrorActuator = _mirrorActuator;
 	
-	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor,withHWPAct,HWPMotor,HWPActuator);
+	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,HWPMotor,HWPActuator,mirrorActuator);
 	currentName = DEFAULT_REGIME;
 }
 
@@ -77,7 +80,7 @@ int RegimeContainer::procCommand(string command)
 				break;
 			}
 			cout << "new regime: " << tokens[1] << endl;
-			regimes[tokens[1]] = Regime(withDetector,withHWPMotor,withHWPAct,HWPMotor,HWPActuator);
+			regimes[tokens[1]] = Regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,HWPMotor,HWPActuator,mirrorActuator);
 		}
 		break;
 		case RMOD:
@@ -205,7 +208,7 @@ int RegimeContainer::procCommand(string command)
 
 			string newname = ftokens[0];
 
-			Regime regime(withDetector,withHWPMotor,withHWPAct,HWPMotor,HWPActuator);
+			Regime regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,HWPMotor,HWPActuator,mirrorActuator);
 			while ( getline(file,str) )
 				regime.procCommand(str);
 			regimes[newname] = regime;
