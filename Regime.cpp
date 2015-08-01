@@ -20,10 +20,11 @@ Regime::Regime()
 {
 }
 
-Regime::Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator)
+Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator)
 {
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
+	withHWPMotor = _withHWPAct;
 
 	HWPMotor = _HWPMotor;
 	HWPActuator = _HWPActuator;
@@ -557,32 +558,37 @@ int Regime::apply()
 		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"],doubleParams["HWPSpeed"]);
 	}
 
-
 	int HWPActuatorStatus = 0;
-	
-	HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"]);
 
-	
-	cout << "current band " << HWPBand << " desired band " << intParams["HWPBand"] << endl;
-	if ( HWPBand!=intParams["HWPBand"] ) 
+	if ( withHWPAct && withHWPMotor ) 
 	{
-		if ( HWPBand == 0 )
+		HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"]);
+	
+		cout << "current band " << HWPBand << " desired band " << intParams["HWPBand"] << endl;
+		if ( HWPBand!=intParams["HWPBand"] ) 
 		{
-			if ( intParams["HWPBand"] == 1 ) switchHWP();
-			if ( intParams["HWPBand"] == 2 ) {switchHWP();switchHWP();}
+			if ( HWPBand == 0 )
+			{
+				if ( intParams["HWPBand"] == 1 ) switchHWP();
+				if ( intParams["HWPBand"] == 2 ) {switchHWP();switchHWP();}
+			}
+			if ( HWPBand == 1 )
+			{
+				if ( intParams["HWPBand"] == 2 ) switchHWP();
+				if ( intParams["HWPBand"] == 0 ) {switchHWP();switchHWP();}
+			}
+			if ( HWPBand == 2 )
+			{
+				if ( intParams["HWPBand"] == 0 ) switchHWP();
+				if ( intParams["HWPBand"] == 1 ) {switchHWP();switchHWP();}
+			}
+			HWPBand = intParams["HWPBand"];
 		}
-		if ( HWPBand == 1 )
-		{
-			if ( intParams["HWPBand"] == 2 ) switchHWP();
-			if ( intParams["HWPBand"] == 0 ) {switchHWP();switchHWP();}
-		}
-		if ( HWPBand == 2 )
-		{
-			if ( intParams["HWPBand"] == 0 ) switchHWP();
-			if ( intParams["HWPBand"] == 1 ) {switchHWP();switchHWP();}
-		}
-		HWPBand = intParams["HWPBand"];
 	}
+	else
+	{
+		cout << "HWP band switching is not possible, HWP actuator or/and motor is off" << endl;
+	}	
 	
 	return HWPRotationStatus;
 }

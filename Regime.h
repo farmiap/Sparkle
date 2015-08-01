@@ -42,6 +42,7 @@ private:
 
 	int withDetector;
 	int withHWPMotor;
+	int withHWPAct;
 
 	int HWPBand;
 	
@@ -71,12 +72,12 @@ public:
 	void print();
 
 	Regime();
-	Regime(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator);
+	Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator);
 	~Regime();
 };
 
 // detector interaction functions which don't require regime framework
-bool finalize(int _withDetector,int _withHWPMotor,float startTemp);
+bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTemp);
 bool checkTempInside(double lowerLim, double upperLim);
 bool setTemp(double temper, bool waitForStab = true);
 

@@ -36,10 +36,11 @@ private:
 	
 	int withDetector;
 	int withHWPMotor;
+	int withHWPAct;
 	void addRegime(string name);
 public:
 	RegimeContainer();
-	RegimeContainer(int _withDetector,int _withHWPMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator);
+	RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator);
 	~RegimeContainer();
 	int procCommand(string command);
 	string currentRegimeName();

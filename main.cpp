@@ -22,10 +22,12 @@ int main(int argc, char* argv[])
 	float startTemp;
 
 	int c;
-	int withDetector = 1;
-	int withHWPMotor = 1;
+	int withDetector  = 1;
+	int withHWPMotor  = 1;
+	int withHWPAct    = 1;
+	int withMirrorAct = 1;
 
-	while ((c = getopt (argc, argv, "dmah")) != -1)
+	while ((c = getopt (argc, argv, "dmniah")) != -1)
 		switch (c)
 		{
 		case 'd':
@@ -34,6 +36,12 @@ int main(int argc, char* argv[])
 		case 'm':
 			withHWPMotor = 0;
 			break;
+		case 'n':
+			withHWPAct = 0;
+			break;
+		case 'i':
+			withMirrorAct = 0;
+			break;
 		case 'a':
 			imageAveragerTest();
 			return 1;
@@ -41,6 +49,8 @@ int main(int argc, char* argv[])
 		case 'h':
 			cout << "-d work without detector" << endl;
 			cout << "-m work without HWP motor" << endl;
+			cout << "-n work without HWP actuator" << endl;
+			cout << "-i work without Mirror actuator" << endl;
 			cout << "-a image averager test" << endl;
 			return 1;
 			break;
@@ -51,7 +61,7 @@ int main(int argc, char* argv[])
 	StandaRotationStage HWPMotor;
 	StandaActuator HWPActuator;
 
-	RegimeContainer regimeContainer(withDetector,withHWPMotor,&HWPMotor,&HWPActuator);
+	RegimeContainer regimeContainer(withDetector,withHWPMotor,withHWPAct,&HWPMotor,&HWPActuator);
 
 	if ( withDetector )
 	{
@@ -82,7 +92,7 @@ int main(int argc, char* argv[])
 
 		if ( command.compare("exit") == 0 )
 		{
-			if ( finalize(withDetector,withHWPMotor,startTemp) )
+			if ( finalize(withDetector,withHWPMotor,withHWPAct,startTemp) )
 					break;
 		}
 
