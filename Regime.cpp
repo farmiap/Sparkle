@@ -1189,7 +1189,7 @@ bool checkTempInside(double lowerLim, double upperLim)
 }
 
 
-bool finalize(int _withDetector,int _withHWPMotor,float startTemp)
+bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTemp)
 {
 	int status = DRV_SUCCESS;
 	if ( _withDetector )
