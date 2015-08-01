@@ -40,6 +40,9 @@ private:
 	map<string, int> 	actionCommands;
 	map<string, string> 	commandHints;
 
+	map<string, map<string, double> > 	doubleParamsValues;
+	map<string, map<string, int> > 	        intParamsValues;
+	
 	int withDetector;
 	int withHWPMotor;
 	int withHWPAct;

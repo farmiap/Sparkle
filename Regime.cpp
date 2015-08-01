@@ -32,15 +32,28 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotatio
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
+	intParamsValues["shutter"]["close"] = 0;
+	intParamsValues["shutter"]["open"]  = 1;
 	intParams["ft"] = 1;            // frame transfer: 0 - disabled, 1 - enabled
+	intParamsValues["ft"]["disable"] = 0;
+	intParamsValues["ft"]["enable"] = 1;
 	intParams["adc"] = 1;          // A/D channel: 0 - 14-bit, 1 - 16-bit
+	intParamsValues["adc"]["14-bit"] = 0;
+	intParamsValues["adc"]["16-bit"] = 1;
 	intParams["ampl"] = 1;          // amplifier: 0 - EM, 1 - conventional
+	intParamsValues["ampl"]["EM"] = 0;
+	intParamsValues["ampl"]["em"] = 0;
+	intParamsValues["ampl"]["conv"] = 1;
 	intParams["horSpeed"] = 0;      // horisontal speed: conv: 0 - 3 MHz; EM 0 - 10 MHz, 1 - 5 MHz, 2 - 3 MHz
+	intParamsValues["horSpeed"]["10MHz"] = 0;
+	intParamsValues["horSpeed"]["5MHz"] = 1;
+	intParamsValues["horSpeed"]["3MHz"] = 2;
 	intParams["preamp"] = 0;        // preamplifier
 	intParams["vertSpeed"] = 1;     // vertical clocking speed (0 - 0.3, 1 - 0.5, 2 - 0.9, 3 - 1.7, 4 - 3.3) \mu s
 	intParams["vertAmpl"] = 3;      // vertical clocking voltage amplitude 0 - 4
 	intParams["temp"] = -1.0;	    // temperature
 	intParams["EMGain"] = 1;      // EM gain
+
 
 	intParams["imLeft"] = 1;        // image left side
 	intParams["imRight"] = 512;     // image right side
@@ -51,8 +64,13 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,StandaRotatio
 	doubleParams["exp"] = 0.1;      // exposure
 
 	// HWP rotation unit section
-	intParams["HWPEnable"]=0;          // 0 - not to use HWP, 1 - use HWP in step mode, 2 - use in continious mode
-	intParams["HWPDirInv"]=0; 	// HWP direction. Seeing from detector to telescope: 1 - CCW, 0 - CW
+	intParams["HWPMode"]=0;          // 0 - not to use HWP, 1 - use HWP in step mode, 2 - use in continious mode
+	intParamsValues["HWPMode"]["disable"] = 0;
+	intParamsValues["HWPMode"]["step"] = 1;
+	intParamsValues["HWPMode"]["cont"] = 2;
+	intParams["HWPDir"]=0; 	// HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
+	intParamsValues["HWPDir"]["cw"] = 0;
+	intParamsValues["HWPDir"]["ccw"] = 1;
 	stringParams["HWPDevice"] = "";
 	intParams["HWPPairNum"] = 1; // number of pairs in group
 	intParams["HWPGroupNum"] = 1; // number of groups
@@ -181,6 +199,11 @@ int Regime::procCommand(string command)
 			intParams[tokens[0]] = value;
 			active = FALSE;
 		}
+		else if ( intParamsValues[tokens[0]].count(tokens[1]) > 0 )
+		{
+			intParams[tokens[0]] = intParamsValues[tokens[0]][tokens[1]];
+			active = FALSE;
+		}
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
 		else
@@ -193,6 +216,11 @@ int Regime::procCommand(string command)
 			double value;
 			istringstream ( tokens[1] ) >> value;
 			doubleParams[tokens[0]] = value;
+			active = FALSE;
+		}
+		else if ( doubleParamsValues[tokens[0]].count(tokens[1]) > 0 )
+		{
+			doubleParams[tokens[0]] = doubleParamsValues[tokens[0]][tokens[1]];
 			active = FALSE;
 		}
 		else if ( commandHints.count( tokens[0] ) > 0 )
