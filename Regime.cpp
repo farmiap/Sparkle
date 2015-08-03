@@ -490,19 +490,19 @@ int Regime::validate()
 		return 0;
 	}
 
-	if ( ( intParams["mirrorPosOff"] > 20000 ) || ( intParams["mirrorPosOff"] < 100 ) )
+	if ( ( intParams["mirrorPosOff"] > -100 ) || ( intParams["mirrorPosOff"] < -20000 ) )
 	{
 		cout << "Mirror position off should be between 100 and 20000, validation failed" << endl;
 		return 0;
 	}
 	
-	if ( ( intParams["mirrorPosLinpol"] > 20000 ) || ( intParams["mirrorPosLinpol"] < 100 ) )
+	if ( ( intParams["mirrorPosLinpol"] > -100 ) || ( intParams["mirrorPosLinpol"] < -20000 ) )
 	{
 		cout << "Mirror position linpol should be between 100 and 20000, validation failed" << endl;
 		return 0;
 	}
 	
-	if ( ( intParams["mirrorPosFinder"] > 20000 ) || ( intParams["mirrorPosFinder"] < 100 ) )
+	if ( ( intParams["mirrorPosFinder"] > -100 ) || ( intParams["mirrorPosFinder"] < -20000 ) )
 	{
 		cout << "Mirror position finder should be between 100 and 20000, validation failed" << endl;
 		return 0;
