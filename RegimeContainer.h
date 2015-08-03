@@ -21,6 +21,7 @@ enum
 	RPRINT,
 	RVAL,
 	RLOAD,
+	RSAVE,
 	RAPP,
 	RCOPY
 };

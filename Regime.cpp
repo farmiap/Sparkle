@@ -284,6 +284,41 @@ void Regime::print()
 	pathes.print();
 }
 
+void Regime::saveToFile(string path,string name)
+{
+	// Regime doesn't know its name, it is passed from outside
+	
+	size_t pos = filename.rfind("/");
+	
+	string directory = path.substr(0,pos+1);
+
+	if ( access(directory.c_str(), R_OK | W_OK) != 0 )
+	{
+		cout << "------------->ERROR: cannot write regime to dir: " << directory << endl;
+		return 0;
+	}
+	
+	FILE *f=fopen(directory.c_str(),"w");
+	
+	
+	fprintf(f,"%s\n",name);
+	
+	for(map<string, int>::iterator it = intParams.begin();it != intParams.end();++it)
+	{
+		fprintf(f,"%s %d\n",it->first.c_str(),it->second.c_str());
+	}
+	for(map<string, double>::iterator it = doubleParams.begin();it != doubleParams.end();++it)
+	{
+		fprintf(f,"%s %f\n",it->first.c_str(),it->second.c_str());
+	}
+	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
+	{
+		fprintf(f,"%s %s\n",it->first.c_str(),it->second.c_str());
+	}
+	fclose(f);
+}
+
+
 int Regime::validate()
 {
 	if (!pathes.validate())

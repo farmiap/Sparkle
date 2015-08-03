@@ -23,6 +23,7 @@ RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHW
 	regimeCommands["rval"]  = RVAL;
 	regimeCommands["rapp"]  = RAPP;
 	regimeCommands["rload"] = RLOAD;
+	regimeCommands["rsave"] = RSAVE;
 	regimeCommands["rcopy"] = RCOPY;
 
 	withDetector = _withDetector;
@@ -214,6 +215,25 @@ int RegimeContainer::procCommand(string command)
 			regimes[newname] = regime;
 
 			file.close();
+		}
+		break;
+		case RSAVE:
+		{
+			if ( tokens.size() > 2 )
+			{
+				cout << "synt. error: rload filename" << endl;
+				break;
+			}
+
+			struct stat  buffer;
+			int st = stat(tokens[1].c_str(), &buffer);
+			if ( S_ISDIR(buffer.st_mode) )
+			{
+				cout << "error: stat check: this is directory!" << endl;
+				break;
+			}
+
+			regimes[currentName].saveToFile(tokens[1],currentName);
 		}
 		break;
 		case RCOPY:
