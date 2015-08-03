@@ -284,11 +284,11 @@ void Regime::print()
 	pathes.print();
 }
 
-void Regime::saveToFile(string path,string name)
+int Regime::saveToFile(string path,string name)
 {
 	// Regime doesn't know its name, it is passed from outside
 	
-	size_t pos = filename.rfind("/");
+	size_t pos = path.rfind("/");
 	
 	string directory = path.substr(0,pos+1);
 
@@ -298,24 +298,28 @@ void Regime::saveToFile(string path,string name)
 		return 0;
 	}
 	
-	FILE *f=fopen(directory.c_str(),"w");
+	FILE *f=fopen(path.c_str(),"w");
 	
 	
-	fprintf(f,"%s\n",name);
+	fprintf(f,"%s\n",name.c_str());
 	
 	for(map<string, int>::iterator it = intParams.begin();it != intParams.end();++it)
 	{
-		fprintf(f,"%s %d\n",it->first.c_str(),it->second.c_str());
+		cout << "write parameter %s " << it->first << "all is ok" << endl;
+		fprintf(f,"%s %d\n",it->first.c_str(),it->second);
 	}
 	for(map<string, double>::iterator it = doubleParams.begin();it != doubleParams.end();++it)
 	{
-		fprintf(f,"%s %f\n",it->first.c_str(),it->second.c_str());
+                cout << "write parameter %s " << it->first << "all is ok" << endl;
+		fprintf(f,"%s %f\n",it->first.c_str(),it->second);
 	}
 	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
 	{
+		cout << "write parameter %s " << it->first << "all is ok" << endl;
 		fprintf(f,"%s %s\n",it->first.c_str(),it->second.c_str());
 	}
 	fclose(f);
+	return 1;
 }
 
 

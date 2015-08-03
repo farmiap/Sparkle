@@ -84,6 +84,7 @@ public:
 	void commandHintsFill();
 
 	void print();
+	int saveToFile(string path,string name);
 
 	Regime();
 	Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator);
