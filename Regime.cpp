@@ -208,41 +208,55 @@ int Regime::procCommand(string command)
 	}
 	else if ( intParams.count(tokens[0]) > 0 )
 	{
-		if (( tokens.size() == 2) && ( is_integer(tokens[1]) ))
+		if ( tokens.size() == 2)  
 		{
-			int value;
-			istringstream ( tokens[1] ) >> value;
-			intParams[tokens[0]] = value;
-			active = FALSE;
-		}
-		else if ( intParamsValues[tokens[0]].count(tokens[1]) > 0 )
-		{
-			intParams[tokens[0]] = intParamsValues[tokens[0]][tokens[1]];
-			active = FALSE;
-		}
+			if ( is_integer(tokens[1]) )
+			{
+				int value;
+				istringstream ( tokens[1] ) >> value;
+				intParams[tokens[0]] = value;
+				active = FALSE;
+			}
+			else if ( intParamsValues[tokens[0]].count(tokens[1]) > 0 )
+			{
+				intParams[tokens[0]] = intParamsValues[tokens[0]][tokens[1]];
+				active = FALSE;
+			}
+			else
+			{
+				cout << "alias " << tokens[1] << " for parameter " << tokens[0] << " not found" << endl;
+			}
+	        }
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
 		else
-			cout << "error: unknown parameter" << tokens[0] << endl;
+			cout << "error: incorrect setting parameter " << tokens[0] << endl;
 	}
 	else if ( doubleParams.count(tokens[0]) > 0 )
 	{
-		if (( tokens.size() == 2) && ( is_double(tokens[1]) ))
+		if ( tokens.size() == 2) 
 		{
-			double value;
-			istringstream ( tokens[1] ) >> value;
-			doubleParams[tokens[0]] = value;
-			active = FALSE;
-		}
-		else if ( doubleParamsValues[tokens[0]].count(tokens[1]) > 0 )
-		{
-			doubleParams[tokens[0]] = doubleParamsValues[tokens[0]][tokens[1]];
-			active = FALSE;
-		}
+			if ( is_double(tokens[1]) )
+			{
+				double value;
+				istringstream ( tokens[1] ) >> value;
+				doubleParams[tokens[0]] = value;
+				active = FALSE;
+			}
+			else if ( doubleParamsValues[tokens[0]].count(tokens[1]) > 0 )
+			{
+				doubleParams[tokens[0]] = doubleParamsValues[tokens[0]][tokens[1]];
+				active = FALSE;
+			} 
+			else 
+			{
+				cout << "alias " << tokens[1] << " for parameter " << tokens[0] << " not found" << endl;
+			}
+		}	
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
 		else
-			cout << "error: unknown parameter" << tokens[0] << endl;
+			cout << "error: incorrect setting parameter " << tokens[0] << endl;
 	}
 	else if ( stringParams.count(tokens[0]) > 0 )
 	{
@@ -254,10 +268,10 @@ int Regime::procCommand(string command)
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
 		else
-			cout << "error: unknown parameter" << tokens[0] << endl;
+			cout << "error: incorrect setting parameter " << tokens[0] << endl;
 	}
 	else
-		cout << "error: unknown parameter"  << tokens[0] << endl;
+		cout << "error: unknown parameter "  << tokens[0] << endl;
 
 
 	return 1;
