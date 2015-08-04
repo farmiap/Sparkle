@@ -106,6 +106,10 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["mirrorPosFinder"] = 0;  // position of moving mirror when the finder and calibration source are in the beam
 	doubleParams["mirrorBeamTime"] = 20.0; // period of time for which the linear polarizer is inserted into the beam in beginning and end of series (activated by "mirror auto" command)
 
+	stringParams["fitsname"] = ""; 
+	stringParams["fitsdir"] = "";
+	stringParams["prtaname"] = "";
+
 	pathesCommands["fitsname"] = FITSNAME;
 	pathesCommands["fitsdir"] = FITSDIR;
 	pathesCommands["prtaname"] = PRTANAME;
@@ -150,28 +154,6 @@ int Regime::procCommand(string command)
 		cout << "wrong parameter command" << endl;
 		return 0;
 	}
-
-	if ( tokens.size() == 2 )
-	{
-		switch ( pathesCommands[tokens[0]] )
-		{
-		case FITSNAME:
-			active = FALSE;
-			pathes.setFits(tokens[1]);
-			return 1;
-		case FITSDIR:
-			active = FALSE;
-			pathes.setDir(tokens[1]);
-			return 1;
-		case PRTANAME:
-			active = FALSE;
-			pathes.setRTA(tokens[1]);
-			return 1;
-		default:
-			break;
-		}
-	}
-
 
 	if ( actionCommands.count(tokens[0]) > 0 )
 	{
@@ -263,6 +245,20 @@ int Regime::procCommand(string command)
 		if ( tokens.size() == 2)
 		{
 			stringParams[tokens[0]] = tokens[1];
+			switch ( pathesCommands[tokens[0]] )
+			{
+				case FITSNAME:
+					pathes.setFits(tokens[1]);
+					return 1;
+				case FITSDIR:
+					pathes.setDir(tokens[1]);
+					return 1;
+				case PRTANAME:
+					pathes.setRTA(tokens[1]);
+					return 1;
+				default:
+					break;
+			}
 			active = FALSE;
 		}
 		else if ( commandHints.count( tokens[0] ) > 0 )
