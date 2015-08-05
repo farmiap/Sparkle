@@ -1127,38 +1127,6 @@ bool Regime::acquire()
 		return false;
 	}
 
-	HWPRotationTrigger HWPTrigger;
-	HWPAngleContainer angleContainer;
-	
-	int HWPisMoving;
-	int HWPisMovingPrev=0;
-	int motionStarted=0;
-	double HWPAngle;
-	
-	if ( withHWPMotor && intParams["HWPEnable"] )
-	{
-		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
-		msec_sleep(200.0);
-		do
-		{
-			HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-		//		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
-			msec_sleep(50.0);
-		} while ( HWPisMoving );
-		msec_sleep(1000.0);
-	
-		if ( intParams["HWPEnable"] == 1 )
-		{
-			HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
-			HWPTrigger.start();
-		}
-		else 
-		{
-			HWPMotor->startContiniousMotion();
-		}
-	}
-
-
 	initscr();
 	raw();
 	noecho();
@@ -1200,59 +1168,12 @@ bool Regime::acquire()
 			int state;
 			if ( status == DRV_SUCCESS ) status = GetStatus(&state);
 			if ( state == DRV_IDLE) break;
-			
-			if ( withHWPMotor && intParams["HWPEnable"] ) {
-				if ( intParams["HWPEnable"] == 1)
-				{
-					HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-					int currentStepNumber;
-					if ( HWPTrigger.check(&currentStepNumber) )
-					{
-						move(2,0);
-						motionStarted = 1;
-						double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
-						printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",kin,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
-						if ( !HWPisMoving )
-							HWPMotor->startMoveByAngle(nextStepValue);
-						else
-						{
-							move(3,0);
-							printw("ATTENTION: HWP stage is skipping steps %d",kin);
-						}
-					}
-					else
-					{
-						motionStarted = 0;
-					}
-					// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-					if (motionStarted)
-					{
-						angleContainer.addStatusAndAngle(kin,1,HWPAngle);
-						//					HWPisMovingPrev = 1;
-					}
-					else
-					{
-						angleContainer.addStatusAndAngle(kin,(int)(HWPisMoving!=0),HWPAngle);
-						//					HWPisMovingPrev = HWPisMoving;
-					}
-				}
-			}
 		}
 	}
 	werase(stdscr);
 	nodelay(stdscr, FALSE);
 	refresh();
 	endwin();
-
-	if ( withHWPMotor && (intParams["HWPEnable"]==1) )
-	{
-		cout << "writing HWP angle data" << endl;
-
-		angleContainer.convertToIntervals();
-		angleContainer.print();
-		angleContainer.writeIntervalsToFits((char*)pathes.getIntrvPath());
-	}
-	
 	
 	return true;
 }
