@@ -31,6 +31,24 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	HWPActuator = _HWPActuator;
 	mirrorActuator = _mirrorActuator;
 	
+//	doubleParams["platePA"] = 0.0; // P.A. of hor+ direction relatively to camera enclosure (for ADC)
+//	intParams["plateMirror"] 0; // is image mirrored? (for ADC)
+
+// general	
+	doubleParams["latitude"] = 0.0; // latitude of telescope, deg, positive is north
+	doubleParams["longitude"] = 0.0; // latitude of telescope, deg, positive is east
+	doubleParams["altitude"] = 0.0; // altitude a.s.l. of telescope, m
+	doubleParams["objectRA"] = 0.0; // deg
+	doubleParams["objectDec"] = 0.0; // deg
+	stringParams["object"] = "none"; // object name
+	stringParams["program"] = "none"; // observational program ID
+	stringParams["author"] = "nobody"; // author of observational program
+	stringParams["telescope"] = "none"; 
+	stringParams["instrument"] = "instrument";
+	doubleParams["aperture"] = 0.0; // aperture diameter of the telescope, m
+	doubleParams["secondary"] = 0.0; // secondary mirror shadow diameter, m
+
+// detector
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
@@ -65,7 +83,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	
 	doubleParams["exp"] = 0.1;      // exposure
 
-	// HWP rotation unit section
+// HWP rotation unit section
 	intParams["HWPMode"]=0;          // 0 - not to use HWP, 1 - use HWP in step mode, 2 - use in continious mode
 	intParamsValues["HWPMode"]["disable"] = 0;
 	intParamsValues["HWPMode"]["step"] = 1;
@@ -294,6 +312,39 @@ void Regime::print()
 	pathes.print();
 }
 
+void Regime::print2()
+{
+/*
+	initscr();
+	raw();
+	noecho();
+	nodelay(stdscr, TRUE);
+
+	move(0,0);
+
+	if ( active )
+		printw("----------------------------ACTIVE------------------------------");
+	else
+		printw("-X-X-X-X-X-X-X-X-X-X-X-X-X-INACTIVE-X-X-X-X-X-X-X-X-X-X-X-X-X-X-X");
+	
+	move(1,0);
+		printw("|       Detector        |");
+	move(2,0);
+	if ( intParams["shutter"] == 0 )	
+		printw("|shutter        close    |");
+	else
+		printw("|shutter        open     |");
+	move(3,0);
+		printw("|exposure");
+	move(3,7);
+		printw("%.2f",);
+	
+	
+	nodelay(stdscr, FALSE);
+	endwin();
+	*/
+}
+
 int Regime::saveToFile(string path,string name)
 {
 	// Regime doesn't know its name, it is passed from outside
@@ -341,11 +392,54 @@ int Regime::validate()
 		return 0;
 	}
 
+	if (( doubleParams["latitude"] < -90.0 ) || ( doubleParams["latitude"] > 90.0 ))
+	{
+		cout << "latitude validation failed" << endl;
+		return 0;
+	}
+
+	if (( doubleParams["longitude"] < -180.0 ) || ( doubleParams["longitude"] > 180.0 ))
+	{
+		cout << "longitude validation failed" << endl;
+		return 0;
+	}
+
+	if (( doubleParams["altitude"] < 0.0 ) || ( doubleParams["altitude"] > 10000.0 ))
+	{
+		cout << "altitude validation failed" << endl;
+		return 0;
+	}
+
+	if (( doubleParams["objectDec"] < -90.0 ) || ( doubleParams["objectDec"] > 90.0 ))
+	{
+		cout << "object declination validation failed" << endl;
+		return 0;
+	}
+
+	if (( doubleParams["objectRA"] < 0.0 ) || ( doubleParams["objectRA"] > 360.0 ))
+	{
+		cout << "object right ascension validation failed" << endl;
+	}
+
+	if ((doubleParams["aperture"] < 0) || (doubleParams["aperture"] > 100))
+	{
+		cout << "aperture diameter validation failed" << endl;
+		return 0;
+	}
+	if ((doubleParams["secondary"] < 0) || (doubleParams["secondary"] > 100))
+	{
+		cout << "secondary mirror diameter validation failed" << endl;
+		return 0;
+	}
+	
+
 	if ((intParams["skip"] < 1) || (intParams["skip"] > 1000))
 	{
 		cout << "rta skip validation failed" << endl;
 		return 0;
 	}
+
+
 /*
 	if ((intParams["skip"]*doubleParams["exp"] < 0.8))
 	{
@@ -571,6 +665,19 @@ int Regime::validate()
 
 void Regime::commandHintsFill()
 {
+	commandHints["latitude"] = "latitude of telescope, deg, positive is north";
+	commandHints["longitude"] = "longitude of telescope, deg, positive is east";
+	commandHints["altitude"] = "altitude a.s.l. of telescope, m";
+	commandHints["objectRA"] = "object right ascension, deg";
+	commandHints["objectDec"] = "object declinatio, deg";
+	commandHints["object"] = "object name";
+	commandHints["program"] = "observational program ID";
+	commandHints["author"] = "author of observational program";
+	commandHints["telescope"] = "telescope"; 
+	commandHints["instrument"] = "instrument";
+	commandHints["aperture"] = "aperture diameter of the telescope, m";
+	commandHints["secondary"] = "secondary mirror shadow diameter, m";
+	
 	commandHints["skip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
 	commandHints["numKin"]  = "number of kinetic cycles in series";
 	commandHints["shutter"] = "shutter: 0 - close, 1 - open";

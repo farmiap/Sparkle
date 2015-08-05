@@ -84,6 +84,7 @@ public:
 	void commandHintsFill();
 
 	void print();
+	void print2();
 	int saveToFile(string path,string name);
 
 	Regime();
