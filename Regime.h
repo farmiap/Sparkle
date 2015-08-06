@@ -73,6 +73,7 @@ private:
 	int switchHWP();
 	
 	void augmentPrimaryHDU();
+	void addAuxiliaryHDU();
 public:
 	int procCommand(string command);
 	int validate();

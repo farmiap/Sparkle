@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <fitsio.h>
+#include <sys/stat.h>
 
 #include "HWPRotation.h"
 
@@ -191,14 +192,7 @@ void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> co
 	
 	char extname[100];
 	sprintf(extname,"HWPPOSITIONS");
-	
-	//	int bitpix   =  FLOAT_IMG; /* 32-bit double pixel values       */
-	//	long naxis    =   2;  /* 2-dimensional image                            */
-	//	long naxes[2] = { nx, ny};   /* image is nx pixels wide by ny rows */
-	
-	/* allocate memory for the whole image */
-	//	array[0] = (long *)malloc( naxes[0] * naxes[1] * sizeof(long) );
-	
+		
 	double *colArray;
 	colArray = (double *)malloc( nrows * sizeof(double) );
 	int counter = 0;
@@ -211,13 +205,20 @@ void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> co
 	//	for( ii=1; ii<naxes[1]; ii++ )
 	//		array[ii] = array[ii-1] + naxes[0];
 	
-	remove(filename);               /* Delete old file if it already exists */
-	
 	status = 0;         /* initialize status before calling fitsio routines */
 	
-	if (fits_create_file(&fptr, filename, &status)) /* create new FITS file */
-		printerror2( status );           /* call printerror if error occurs */
-		
+	struct stat  buffer;	
+	if ( stat(filename, &buffer) == 0 )
+	{	
+		if ( fits_open_file(&fptr, filename, READWRITE, &status) )
+			printerror2( status );
+	} 
+	else
+	{
+		if ( fits_create_file(&fptr, filename, &status)) /* create new FITS file */
+			printerror2( status );           /* call printerror if error occurs */
+	}
+	
 	if ( fits_create_tbl(fptr,  ASCII_TBL, nrows, 1, ttype, tform, tunit, extname, &status) )
 		printerror2( status );
 

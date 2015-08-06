@@ -48,7 +48,10 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["instrument"] = "instrument";
 	doubleParams["aperture"] = 0.0; // aperture diameter of the telescope, m
 	doubleParams["secondary"] = 0.0; // secondary mirror shadow diameter, m
-
+	stringParams["focusStation"] = "none"; // N1, N2, C1 etc.
+	doubleParams["platePA"] = 0.0; // P.A. of hor+ direction relatively to camera enclosure (for ADC)
+	intParams["plateMirror"] = 0; // is image mirrored? (for ADC)
+	
 // detector
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
@@ -433,7 +436,18 @@ int Regime::validate()
 		return 0;
 	}
 	
-
+	if ((doubleParams["platePA"] < 0) || (doubleParams["platePA"] > 360))
+	{
+		cout << "plate P.A. validation failed" << endl;
+		return 0;
+	}
+	
+	if ((intParams["plateMirror"] != 0) && (intParams["plateMirror"] != 1))
+	{
+		cout << "plate mirror validation failed" << endl;
+		return 0;
+	}
+	
 	if ((intParams["skip"] < 1) || (intParams["skip"] > 1000))
 	{
 		cout << "rta skip validation failed" << endl;
@@ -678,6 +692,9 @@ void Regime::commandHintsFill()
 	commandHints["instrument"] = "instrument";
 	commandHints["aperture"] = "aperture diameter of the telescope, m";
 	commandHints["secondary"] = "secondary mirror shadow diameter, m";
+	commandHints["focusStation"] = "N1, N2, C1 etc.";
+	commandHints["platePA"] = "P.A. of hor+ direction relatively to camera enclosure (for ADC)";
+	commandHints["plateMirror"] = "is image mirrored? (for ADC)";
 	
 	commandHints["skip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
 	commandHints["numKin"]  = "number of kinetic cycles in series";
@@ -1093,25 +1110,18 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
-	augmentPrimaryHDU();	
-	
+	augmentPrimaryHDU(); // write keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
+
 	if ( withHWPMotor && (intParams["HWPEnable"]==1) )
 	{
 		cout << "writing HWP angle data" << endl;
-//		angleContainer.cleanStatus();
-//		angleContainer.print();
-//		if ( intParams["HWPEnable"] == 2 )
-//		{
-//			angleContainer.writePositionsToFits((char*)pathes.getHWPPosPath());
-//		}
-//		else
-//		{
-			angleContainer.convertToIntervals();
-			angleContainer.print();
-			angleContainer.writeIntervalsToFits((char*)pathes.getIntrvPath());
-//		}
+		angleContainer.convertToIntervals();
+		angleContainer.print();
+		angleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());
 	}
-
+	
+	addAuxiliaryHDU(); // write keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, PLATEPA, PLATEMIR, HWPMODE, HWPBAND, RONSIGMA
+	
 	delete data;
 	return true;
 }
@@ -1177,6 +1187,9 @@ bool Regime::acquire()
 	nodelay(stdscr, FALSE);
 	refresh();
 	endwin();
+	
+	augmentPrimaryHDU();
+	addAuxiliaryHDU();
 	
 	return true;
 }
@@ -1403,7 +1416,7 @@ void Regime::augmentPrimaryHDU()
 	fitsfile *fptr;
 	int status = 0, keytype = 0;
 	char card[FLEN_CARD],newcard[FLEN_CARD];
-	
+	// If file doesn't exist, what happens when we work without detector, create it with empty primary array
 	struct stat  buffer;
 	if ( stat((char*)pathes.getSpoolPathSuff(), &buffer) == 0 )
 	{	
@@ -1423,6 +1436,7 @@ void Regime::augmentPrimaryHDU()
 			printerror( status );
 	}
 	
+	// replace unused technical keywords with seven basic keywords defining observation
 	strcpy(newcard,"TELESCOP = ");
 	strcat(newcard, stringParams["telescope"].c_str());
 	fits_parse_template(newcard, card, &keytype, &status);
@@ -1461,6 +1475,93 @@ void Regime::augmentPrimaryHDU()
 	if ( status )
 		printerror( status );
 	cout << "Finish augmenting primary HDU" << endl;
+}
+
+void Regime::addAuxiliaryHDU()
+{
+	fitsfile *fptr;
+	int status = 0, keytype = 0;
+	char card[FLEN_CARD],newcard[FLEN_CARD];
+	if ( fits_open_file(&fptr, (char*)pathes.getSpoolPathSuff(), READWRITE, &status) )
+		printerror( status );
+	
+	char extname[] = "METADATA";             /* extension name */
+	int nrows = 0,tfields = 0;
+	char *ttype[] = {};
+	char *tform[] = {};
+	char *tunit[] = {};
+	
+	if ( fits_create_tbl( fptr, ASCII_TBL, nrows, tfields, ttype, tform, tunit, extname, &status) )
+		printerror( status );
+	
+	sprintf(newcard,"LONGITUD = %.4f",doubleParams["longitude"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "LONGITUD", card, & status);
+	
+	sprintf(newcard,"LATITUDE = %.4f",doubleParams["latitude"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "LATITUDE", card, & status);
+
+	sprintf(newcard,"ALTITUDE = %.4f",doubleParams["altitude"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "ALTITUDE", card, & status);
+	
+	sprintf(newcard,"APERTURE = %.4f",doubleParams["aperture"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "APERTURE", card, & status);
+	
+	sprintf(newcard,"SECONDAR = %.4f",doubleParams["secondary"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "SECONDAR", card, & status);
+
+	sprintf(newcard,"FOCUSSTA = %s",stringParams["focusStation"].c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "FOCUSSTA", card, & status);
+	
+	sprintf(newcard,"PLATEPA = %.2f",doubleParams["platePA"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "PLATEPA", card, & status);
+	
+	sprintf(newcard,"PLATEMIR = %d",intParams["plateMirror"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "PLATEMIR", card, & status);
+	
+	string HWPModeString;
+	for(map<string, int>::iterator it = intParamsValues["HWPMode"].begin();it != intParamsValues["HWPMode"].end();++it)
+		if ( it->second == intParams["HWPMode"] )
+			HWPModeString = it->first;
+	sprintf(newcard,"HWPMODE = %s",HWPModeString.c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "HWPMODE", card, & status);
+		
+	sprintf(newcard,"HWPBAND = %d",intParams["HWPBand"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "HWPBAND", card, & status);
+
+	double RONSigma[3];
+	if (intParams["adc"] == 0) // 14-bit
+		if (intParams["ampl"] == 0) // EM amplifier
+			if      (intParams["horSpeed"] == 0)
+				RONSigma = {93.33, 58.58, 49.64};
+			else if (intParams["horSpeed"] == 1)
+				RONSigma = {82.54, 50.78, 39.48};
+			else  
+				RONSigma = {61.02, 36.87, 30.02};
+		else // conv. amplifier
+			RONSigma = {14.37, 10.56, 9.64};
+	else // 16-bit
+		if (intParams["ampl"] == 0)
+			RONSigma = {36.24, 22.03, 18.56}; // EM amplifier
+		else
+			RONSigma = {8.45, 6.7, 6.08}; 	  // conv. amplifier
+	
+	sprintf(newcard,"RONSIGMA = %.2f",RONSigma[intParams["preamp"]]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "RONSIGMA", card, & status);
+	
+	if ( fits_close_file(fptr, &status) )       /* close the FITS file */
+		printerror( status );
+	
 }
 
 void doFits(int nx, int ny, char* filename,at_32 *data)
