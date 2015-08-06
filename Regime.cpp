@@ -3,6 +3,7 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "atmcdLXd.h"
@@ -1092,6 +1093,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
+	augmentPrimaryHDU();	
+	
 	if ( withHWPMotor && (intParams["HWPEnable"]==1) )
 	{
 		cout << "writing HWP angle data" << endl;
@@ -1392,6 +1395,72 @@ bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTem
 		ShutDown();
 	}
 	return true;
+}
+
+void Regime::augmentPrimaryHDU()
+{
+	cout << "Start augmenting primary HDU" << endl;
+	fitsfile *fptr;
+	int status = 0, keytype = 0;
+	char card[FLEN_CARD],newcard[FLEN_CARD];
+	
+	struct stat  buffer;
+	if ( stat((char*)pathes.getSpoolPathSuff(), &buffer) == 0 )
+	{	
+		if ( fits_open_file(&fptr, (char*)pathes.getSpoolPathSuff(), READWRITE, &status) )
+		printerror( status );
+	}
+	else
+	{
+		if (fits_create_file(&fptr, (char*)pathes.getSpoolPathSuff(), &status))
+			printerror( status );        			
+		
+		int bitpix   =  FLOAT_IMG; /* 32-bit double pixel values       */
+		long naxis    =   0;  /* 2-dimensional image                            */
+		long naxes[0];   /* image is nx pixels wide by ny rows */
+		
+		if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
+			printerror( status );
+	}
+	
+	strcpy(newcard,"TELESCOP = ");
+	strcat(newcard, stringParams["telescope"].c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "AVERAGINGFILTERMODE", card, & status);
+
+	strcpy(newcard,"INSTRUME = ");
+	strcat(newcard, stringParams["instrument"].c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "AVERAGINGFACTOR", card, & status);
+	
+	strcpy(newcard,"OBJECT = ");
+	strcat(newcard, stringParams["object"].c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "FRAMECOUNT", card, & status);
+
+	strcpy(newcard,"PROGID = ");
+	strcat(newcard, stringParams["program"].c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "USERTXT1", card, & status);
+
+	strcpy(newcard,"AUTHOR = ");
+	strcat(newcard, stringParams["author"].c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "USERTXT2", card, & status);
+	
+	sprintf(newcard,"RA = %.4f",doubleParams["objectRA"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "USERTXT3", card, & status);
+
+	sprintf(newcard,"DEC = %.4f",doubleParams["objectDec"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "USERTXT4", card, & status);
+	
+	fits_close_file(fptr, &status);
+
+	if ( status )
+		printerror( status );
+	cout << "Finish augmenting primary HDU" << endl;
 }
 
 void doFits(int nx, int ny, char* filename,at_32 *data)

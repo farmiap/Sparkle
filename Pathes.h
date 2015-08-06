@@ -13,6 +13,7 @@ private:
 	string rta_file; // for refreshing image in run till abort mode
 	string rta_path;
 	string spool_path;
+	string spool_path_suff;
 	string fits_suffix;
 	string intrv_path; // file containing HWP intervals
 	string intrv_suffix; // file containing HWP intervals
@@ -28,6 +29,7 @@ public:
 	const char *getHWPPosPath() {return hwppos_path.c_str();};
 	const char *getIntrvPath() {return intrv_path.c_str();};
 	const char *getSpoolPath() {return spool_path.c_str();};
+	const char *getSpoolPathSuff() {return spool_path_suff.c_str();};
 	const char *getRTAPath() {return rta_path.c_str();};
 
 	void print();

@@ -71,6 +71,8 @@ private:
 	struct timeval prevExpTime;
 	
 	int switchHWP();
+	
+	void augmentPrimaryHDU();
 public:
 	int procCommand(string command);
 	int validate();

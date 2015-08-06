@@ -47,7 +47,7 @@ int Pathes::validate()
 	intrv_path = fits_dir + fits_file + intrv_suffix;
 	hwppos_path = fits_dir + fits_file + hwppos_suffix;
 	
-	string spool_path_suff = spool_path + fits_suffix;
+	spool_path_suff = spool_path + fits_suffix;
 
 	struct stat  buffer;
 	if ( stat(spool_path_suff.c_str(), &buffer) == 0)
