@@ -1,7 +1,7 @@
 all: Sparkle
 
-Sparkle: main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o StandaActuator.o HWPRotation.o
-	g++ -landor -lncurses -lximc main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o StandaActuator.o HWPRotation.o -o Sparkle
+Sparkle: main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o StandaActuator.o HWPRotation.o MirrorMotion.o
+	g++ -landor -lncurses -lximc main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o StandaActuator.o HWPRotation.o MirrorMotion.o -o Sparkle
 	
 main.o: main.cpp RegimeContainer.cpp RegimeContainer.h ImageAverager.h
 	g++ -c main.cpp
@@ -9,7 +9,7 @@ main.o: main.cpp RegimeContainer.cpp RegimeContainer.h ImageAverager.h
 RegimeContainer.o: RegimeContainer.cpp RegimeContainer.h Regime.cpp Regime.h
 	g++ -c RegimeContainer.cpp
 	
-Regime.o: Regime.cpp Regime.h Pathes.cpp Pathes.h StandaRotationStage.cpp StandaRotationStage.h StandaActuator.cpp StandaActuator.h
+Regime.o: Regime.cpp Regime.h Pathes.cpp Pathes.h StandaRotationStage.cpp StandaRotationStage.h StandaActuator.cpp StandaActuator.h MirrorMotion.cpp MirrorMotion.h HWPRotation.cpp HWPRotation.h
 	g++ -c Regime.cpp
 	
 Pathes.o: Pathes.cpp Pathes.h
@@ -26,7 +26,10 @@ StandaActuator.o: StandaActuator.cpp StandaActuator.h
 
 HWPRotation.o: HWPRotation.cpp HWPRotation.h
 	g++ -c HWPRotation.cpp
-	
+
+MirrorMotion.o: MirrorMotion.cpp MirrorMotion.h
+	g++ -c MirrorMotion.cpp
+		
 clean:
 	rm -rf *.o Sparkle
 	

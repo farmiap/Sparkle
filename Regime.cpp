@@ -12,6 +12,7 @@
 #include "Regime.h"
 #include "ImageAverager.h"
 #include "HWPRotation.h"
+#include "MirrorMotion.h"
 
 #define TEMP_MARGIN 3.0             // maximum stabilized temperature deviation from required
 
@@ -925,6 +926,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int HWPisMoving;
 	int HWPisMovingPrev=0;
 	int motionStarted=0;
+	int isMovingFlag=1;
+	int currentPosition;
 	
 	int acc=0;
 	int kin=0;
@@ -933,6 +936,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	
 	HWPRotationTrigger HWPTrigger;
 	HWPAngleContainer angleContainer;
+	MirrorPositionContainer mirrorPositions;
+	
 	if ( withHWPMotor && intParams["HWPMode"] )
 	{
 		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
@@ -964,18 +969,16 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 
 	int mirrorIsOn = 0;
-	if (withMirrorAct)
+	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) )
 	{
 		mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
 		usleep(500000);
-		int isMovingFlag=1;
-		int currentPosition;
 		while (isMovingFlag)
 		{
 			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
 			usleep(100000);
 		}
-		mirrorIsOn = 1;
+		mirrorPositions.addStartNumber(1,0);
 	}
 
 	initscr();
@@ -1006,22 +1009,46 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	gettimeofday(&startTime,&startTz);
 	
 	int quitRTA = 0;
+	
+	int mirrorIsOnStart = 1;
+	int mirrorIsMovingStart = 0;
 	int mirrorIsOnEnd = 0;
+	int mirrorIsMovingEnd = 0;
 	
 	while ( 1 ) {
 		if (counter>0) ch = getch();
 		if ( (ch=='q') || (ch=='x') ) 
 		{
-			if ( intParams["mirrorMode"] == MIRRORAUTO )
+			if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO  ) )
 			{
 				mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
 				gettimeofday(&startTime,&startTz);
-				mirrorIsOnEnd = 1;
+				mirrorPositions.addFinishNumber(0,counter);
+				mirrorIsMovingEnd = 1;
 			}
 			else
 				quitRTA = 1;
 		}
-		if ( mirrorIsOnEnd )
+		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) && mirrorIsMovingStart )
+		{
+			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
+			if ( isMovingFlag == 0 )
+			{
+				mirrorPositions.addStartNumber(0,counter);
+				mirrorIsMovingStart = 0;
+			}
+		}
+		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) && mirrorIsMovingEnd )
+		{
+			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
+			if ( isMovingFlag == 0)
+			{
+				mirrorPositions.addStartNumber(1,counter);
+				mirrorIsOnEnd = 1;
+				mirrorIsMovingEnd = 0;
+			}
+		}
+		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) && mirrorIsOnEnd )
 		{	
 			struct timeval currExpTime3;
 			struct timezone tz3;
@@ -1064,7 +1091,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				}
 			}
 			
-			if ( withMirrorAct && ( intParams["mirrorMode"] == MIRRORAUTO ) && mirrorIsOn )
+			if ( withMirrorAct && ( intParams["mirrorMode"] == MIRRORAUTO ) && mirrorIsOnStart )
 			{
 				struct timeval currExpTime2;
 				struct timezone tz2;
@@ -1073,7 +1100,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				if ( deltaTime > doubleParams["mirrorBeamTime"] )
 				{
 					mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
-					mirrorIsOn = 0;
+					mirrorIsOnStart = 0;
+					mirrorIsMovingStart = 1;
+					mirrorPositions.addFinishNumber(1,counter);
 				}
 			}
 			
@@ -1143,7 +1172,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				{
 					move(1,0);
 					printw(" frame no.: %d, angle %f",counter,HWPAngle);
-					msec_sleep(100.0);
+					msec_sleep(400.0);
 				}
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
@@ -1163,6 +1192,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			counter++;
 		}
 	}
+	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) )
+		mirrorPositions.addFinishNumber(1,counter);
+	
 	werase(stdscr);
 	nodelay(stdscr, FALSE);
 	refresh();
@@ -1170,6 +1202,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 	if (withMirrorAct)
 	{
+		mirrorPositions.print();
+		
 		mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
 		usleep(500000);
 		int isMovingFlag=1;
