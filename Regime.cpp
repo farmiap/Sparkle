@@ -117,12 +117,12 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	// moving mirror control (prefocal group)
 	stringParams["mirrorDevice"] = "";
 	intParams["mirrorSpeed"] = 1000;  // speed of mirror motor, steps/sec
-	intParams["mirror"] = 0;  // 0 - retracted, 1 - linear polarizer inserted, 2 - calibration/finder, 3 - auto
-	intParamsValues["mirror"]["off"] = MIRROROFF;
-	intParamsValues["mirror"]["linpol"] = MIRRORLINPOL;
-	intParamsValues["mirror"]["calibr"] = MIRRORFINDER;
-	intParamsValues["mirror"]["find"] = MIRRORFINDER;
-	intParamsValues["mirror"]["auto"] = MIRRORAUTO;
+	intParams["mirrorMode"] = 0;  // 0 - retracted, 1 - linear polarizer inserted, 2 - calibration/finder, 3 - auto
+	intParamsValues["mirrorMode"]["off"] = MIRROROFF;
+	intParamsValues["mirrorMode"]["linpol"] = MIRRORLINPOL;
+	intParamsValues["mirrorMode"]["calibr"] = MIRRORFINDER;
+	intParamsValues["mirrorMode"]["find"] = MIRRORFINDER;
+	intParamsValues["mirrorMode"]["auto"] = MIRRORAUTO;
 	intParams["mirrorPosOff"] = 0;  // position of moving mirror when it is out of the beam
 	intParams["mirrorPosLinpol"] = 0;  // position of moving mirror when the linear polarizer is in the beam
 	intParams["mirrorPosFinder"] = 0;  // position of moving mirror when the finder and calibration source are in the beam
@@ -642,7 +642,7 @@ int Regime::validate()
 		return 0;
 	}
 
-	if ( ( intParams["mirror"] != 0 ) && ( intParams["mirror"] != 1 ) && ( intParams["mirror"] != 2 ) && ( intParams["mirror"] != 3 ) )
+	if ( ( intParams["mirrorMode"] != 0 ) && ( intParams["mirrorMode"] != 1 ) && ( intParams["mirrorMode"] != 2 ) && ( intParams["mirrorMode"] != 3 ) )
 	{
 		cout << "Mirror can be: 0 - retracted, 1 - linear polarizer inserted, 2 - calibration/finder inserted, 3 - auto. Validation failed." << endl;
 		return 0;
@@ -717,7 +717,7 @@ void Regime::commandHintsFill()
 	commandHints["temp"]     = "target sensor temperature: -80 - 0C";
 	commandHints["exp"]     = "exposure time in seconds";
 
-	commandHints["HWPEnable"]      = "0 - don't use HWP, 1 - step mode, 2 - continous rotation mode.";
+	commandHints["HWPMode"]      = "0 - don't use HWP, 1 - step mode, 2 - continous rotation mode.";
 	commandHints["HWPDirInv"]   = "HWP positive direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
 	commandHints["HWPDevice"]   = "HWP motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["HWPPairNum"]  = "number of pairs in group: >= 1";
@@ -844,7 +844,7 @@ int Regime::apply()
 	{
 		mirrorActuatorStatus = mirrorActuator->initializeActuator(stringParams["mirrorDevice"],doubleParams["mirrorSpeed"]);
 
-		switch ( intParams["mirror"] )
+		switch ( intParams["mirrorMode"] )
 		{
 		case MIRROROFF:
 			mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
@@ -933,7 +933,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	
 	HWPRotationTrigger HWPTrigger;
 	HWPAngleContainer angleContainer;
-	if ( withHWPMotor && intParams["HWPEnable"] )
+	if ( withHWPMotor && intParams["HWPMode"] )
 	{
 		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
 		msec_sleep(200.0);
@@ -945,7 +945,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		} while ( HWPisMoving );
 		msec_sleep(1000.0);
 		
-		if ( intParams["HWPEnable"] == 1 )
+		if ( intParams["HWPMode"] == 1 )
 		{
 			HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
 			HWPTrigger.start();
@@ -962,7 +962,22 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		if ( status == DRV_SUCCESS ) status = SetSpool(doSpool,5,(char*)pathes.getSpoolPath(),10); // disable spooling
 		if ( status == DRV_SUCCESS ) status = StartAcquisition();
 	}
-	
+
+	int mirrorIsOn = 0;
+	if (withMirrorAct)
+	{
+		mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
+		usleep(500000);
+		int isMovingFlag=1;
+		int currentPosition;
+		while (isMovingFlag)
+		{
+			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
+			usleep(100000);
+		}
+		mirrorIsOn = 1;
+	}
+
 	initscr();
 	raw();
 	noecho();
@@ -986,17 +1001,45 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		return false;
 	}
 	
+	struct timeval startTime;
+	struct timezone startTz;
+	gettimeofday(&startTime,&startTz);
+	
+	int quitRTA = 0;
+	int mirrorIsOnEnd = 0;
+	
 	while ( 1 ) {
 		if (counter>0) ch = getch();
-		if ( (ch=='q') || (ch=='x') ) {
+		if ( (ch=='q') || (ch=='x') ) 
+		{
+			if ( intParams["mirrorMode"] == MIRRORAUTO )
+			{
+				mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
+				gettimeofday(&startTime,&startTz);
+				mirrorIsOnEnd = 1;
+			}
+			else
+				quitRTA = 1;
+		}
+		if ( mirrorIsOnEnd )
+		{	
+			struct timeval currExpTime3;
+			struct timezone tz3;
+			gettimeofday(&currExpTime3,&tz3);
+			double deltaTime = (double)(currExpTime3.tv_sec - startTime.tv_sec) + 1e-6*(double)(currExpTime3.tv_usec - startTime.tv_usec);
+			if ( deltaTime > doubleParams["mirrorBeamTime"] )
+				quitRTA = 1;
+		}
+		if ( quitRTA )
+		{
 			if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
-			if ( withHWPMotor && intParams["HWPEnable"] ) HWPMotor->stopContiniousMotion();
+			if ( withHWPMotor && intParams["HWPMode"] ) HWPMotor->stopContiniousMotion();
 			break;
 		}
 		else
 		{
-			if ( withHWPMotor && intParams["HWPEnable"] ) {
-				if ( intParams["HWPEnable"] == 1)
+			if ( withHWPMotor && intParams["HWPMode"] ) {
+				if ( intParams["HWPMode"] == 1)
 				{
 					HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
 					int currentStepNumber;
@@ -1020,6 +1063,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					}
 				}
 			}
+			
+			if ( withMirrorAct && ( intParams["mirrorMode"] == MIRRORAUTO ) && mirrorIsOn )
+			{
+				struct timeval currExpTime2;
+				struct timezone tz2;
+				gettimeofday(&currExpTime2,&tz2);
+				double deltaTime = (double)(currExpTime2.tv_sec - startTime.tv_sec) + 1e-6*(double)(currExpTime2.tv_usec - startTime.tv_usec);
+				if ( deltaTime > doubleParams["mirrorBeamTime"] )
+				{
+					mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
+					mirrorIsOn = 0;
+				}
+			}
+			
 			if ( withDetector )
 			{
 				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
@@ -1081,7 +1138,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 			else
 			{
-				if ( withHWPMotor && ( intParams["HWPEnable"]==1 ) )
+				if ( ( withHWPMotor && ( intParams["HWPMode"]==1 ) ) ||
+					( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
 				{
 					move(1,0);
 					printw(" frame no.: %d, angle %f",counter,HWPAngle);
@@ -1089,7 +1147,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				}
 			}
 			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-			if ( withHWPMotor && (intParams["HWPEnable"]==1) )
+			if ( withHWPMotor && (intParams["HWPMode"]==1) )
 			{
 				if (motionStarted)
 				{
@@ -1110,9 +1168,24 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
-	augmentPrimaryHDU(); // write keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
+	if (withMirrorAct)
+	{
+		mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
+		usleep(500000);
+		int isMovingFlag=1;
+		int currentPosition;
+		while (isMovingFlag)
+		{
+			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
+			usleep(100000);
+		}
+	}
+	
+	// First we write essential keywords into primary HDU header, substituting some uneccesary technical keywords. It is not possible to ADD keywords, this would very expensive in terms of time.
+	augmentPrimaryHDU(); // keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
 
-	if ( withHWPMotor && (intParams["HWPEnable"]==1) )
+	// Then we add data on rotation of HWP (if any) and motion of Mirror (if any)
+	if ( withHWPMotor && (intParams["HWPMode"]==1) )
 	{
 		cout << "writing HWP angle data" << endl;
 		angleContainer.convertToIntervals();
@@ -1120,7 +1193,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		angleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());
 	}
 	
-	addAuxiliaryHDU(); // write keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, PLATEPA, PLATEMIR, HWPMODE, HWPBAND, RONSIGMA
+	// Finally we write additional keywords into specially created empty HDU.
+	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, PLATEPA, PLATEMIR, HWPMODE, HWPBAND, RONSIGMA
 	
 	delete data;
 	return true;
@@ -1412,7 +1486,7 @@ bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTem
 
 void Regime::augmentPrimaryHDU()
 {
-	cout << "Start augmenting primary HDU" << endl;
+//	cout << "Start augmenting primary HDU" << endl;
 	fitsfile *fptr;
 	int status = 0, keytype = 0;
 	char card[FLEN_CARD],newcard[FLEN_CARD];
@@ -1474,7 +1548,7 @@ void Regime::augmentPrimaryHDU()
 
 	if ( status )
 		printerror( status );
-	cout << "Finish augmenting primary HDU" << endl;
+//	cout << "Finish augmenting primary HDU" << endl;
 }
 
 void Regime::addAuxiliaryHDU()
