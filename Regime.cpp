@@ -936,7 +936,6 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	
 	HWPRotationTrigger HWPTrigger;
 	HWPAngleContainer angleContainer;
-	MirrorPositionContainer mirrorPositions;
 	
 	if ( withHWPMotor && intParams["HWPMode"] )
 	{
@@ -978,7 +977,6 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
 			usleep(100000);
 		}
-		mirrorPositions.addStartNumber(1,0);
 	}
 
 	initscr();
@@ -1178,7 +1176,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		angleContainer.print();
 		angleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());
 	}
-	
+
+	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
+	{
+		mirrorMotion.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());
+	}
+
 	// Finally we write additional keywords into specially created empty HDU.
 	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, PLATEPA, PLATEMIR, HWPMODE, HWPBAND, RONSIGMA
 	
