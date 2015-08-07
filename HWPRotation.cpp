@@ -307,8 +307,17 @@ void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1d
 
 	status = 0;         /* initialize status before calling fitsio routines */
 
-	if (fits_create_file(&fptr, filename, &status)) /* create new FITS file */
-		printerror2( status );           /* call printerror if error occurs */
+	struct stat  buffer;	
+	if ( stat(filename, &buffer) == 0 )
+	{	
+		if ( fits_open_file(&fptr, filename, READWRITE, &status) )
+			printerror2( status );
+	} 
+	else
+	{
+		if ( fits_create_file(&fptr, filename, &status)) /* create new FITS file */
+			printerror2( status );           /* call printerror if error occurs */
+	}
 
 	if ( fits_create_tbl(fptr,  ASCII_TBL, nrows, 3, ttype, tform, tunit, extname, &status) )
 		printerror2( status );
