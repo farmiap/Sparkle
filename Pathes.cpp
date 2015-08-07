@@ -10,8 +10,6 @@ Pathes::Pathes()
 {
 //    cout << "pathes constructor" << endl;
 	fits_suffix = ".fits";
-	intrv_suffix = "_intrv.fits";
-	hwppos_suffix = "_hwppos.fits";
 	//    cout << fits_suffix << endl;
 }
 
@@ -24,8 +22,6 @@ void Pathes::print()
 {
 	cout << "  " << "FITS:" << spool_path << fits_suffix << endl;
 	cout << "  " << "current frame:" << rta_path << endl;
-	cout << "  " << "Intervals:" << intrv_path << endl;
-	cout << "  " << "HWPPOS:" << hwppos_path << endl;
 }
 
 int Pathes::validate()
@@ -44,8 +40,6 @@ int Pathes::validate()
 
 	spool_path = fits_dir + fits_file;
 	rta_path = fits_dir + rta_file + fits_suffix;
-	intrv_path = fits_dir + fits_file + intrv_suffix;
-	hwppos_path = fits_dir + fits_file + hwppos_suffix;
 	
 	spool_path_suff = spool_path + fits_suffix;
 
