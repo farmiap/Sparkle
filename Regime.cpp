@@ -1008,54 +1008,26 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	struct timezone startTz;
 	gettimeofday(&startTime,&startTz);
 	
-	int quitRTA = 0;
-	
 	int mirrorIsOnStart = 1;
 	int mirrorIsMovingStart = 0;
 	int mirrorIsOnEnd = 0;
 	int mirrorIsMovingEnd = 0;
+	int quitRequest = 0;
+	int quitRTA = 0;
+	
+	MirrorMotionRTA mirrorMotion(mirrorActuator,intParams["mirrorPosOff"],intParams["mirrorPosLinpol"],doubleParams["mirrorBeamTime"]);
 	
 	while ( 1 ) {
 		if (counter>0) ch = getch();
 		if ( (ch=='q') || (ch=='x') ) 
-		{
-			if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO  ) )
-			{
-				mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
-				gettimeofday(&startTime,&startTz);
-				mirrorPositions.addFinishNumber(0,counter);
-				mirrorIsMovingEnd = 1;
-			}
+			if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
+				quitRequest = 1;
 			else
 				quitRTA = 1;
-		}
-		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) && mirrorIsMovingStart )
+		
+		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
 		{
-			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
-			if ( isMovingFlag == 0 )
-			{
-				mirrorPositions.addStartNumber(0,counter);
-				mirrorIsMovingStart = 0;
-			}
-		}
-		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) && mirrorIsMovingEnd )
-		{
-			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
-			if ( isMovingFlag == 0)
-			{
-				mirrorPositions.addStartNumber(1,counter);
-				mirrorIsOnEnd = 1;
-				mirrorIsMovingEnd = 0;
-			}
-		}
-		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) && mirrorIsOnEnd )
-		{	
-			struct timeval currExpTime3;
-			struct timezone tz3;
-			gettimeofday(&currExpTime3,&tz3);
-			double deltaTime = (double)(currExpTime3.tv_sec - startTime.tv_sec) + 1e-6*(double)(currExpTime3.tv_usec - startTime.tv_usec);
-			if ( deltaTime > doubleParams["mirrorBeamTime"] )
-				quitRTA = 1;
+			quitRTA = mirrorMotion.process(counter,quitRequest);
 		}
 		if ( quitRTA )
 		{
@@ -1063,137 +1035,117 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			if ( withHWPMotor && intParams["HWPMode"] ) HWPMotor->stopContiniousMotion();
 			break;
 		}
-		else
-		{
-			if ( withHWPMotor && intParams["HWPMode"] ) {
-				if ( intParams["HWPMode"] == 1)
+		if ( withHWPMotor && intParams["HWPMode"] ) {
+			if ( intParams["HWPMode"] == 1)
+			{
+				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+				int currentStepNumber;
+				if ( HWPTrigger.check(&currentStepNumber) )
 				{
-					HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-					int currentStepNumber;
-					if ( HWPTrigger.check(&currentStepNumber) )
-					{
-						move(2,0);
-						motionStarted = 1;
-						double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
-						printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
-						if ( !HWPisMoving )
-							HWPMotor->startMoveByAngle(nextStepValue);
-						else
-						{
-							move(3,0);
-							printw("ATTENTION: HWP stage is skipping steps %d",counter);
-						}
-					}
+					move(2,0);
+					motionStarted = 1;
+					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
+					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
+					if ( !HWPisMoving )
+						HWPMotor->startMoveByAngle(nextStepValue);
 					else
 					{
-						motionStarted = 0;
+						move(3,0);
+						printw("ATTENTION: HWP stage is skipping steps %d",counter);
 					}
-				}
-			}
-			
-			if ( withMirrorAct && ( intParams["mirrorMode"] == MIRRORAUTO ) && mirrorIsOnStart )
-			{
-				struct timeval currExpTime2;
-				struct timezone tz2;
-				gettimeofday(&currExpTime2,&tz2);
-				double deltaTime = (double)(currExpTime2.tv_sec - startTime.tv_sec) + 1e-6*(double)(currExpTime2.tv_usec - startTime.tv_usec);
-				if ( deltaTime > doubleParams["mirrorBeamTime"] )
-				{
-					mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
-					mirrorIsOnStart = 0;
-					mirrorIsMovingStart = 1;
-					mirrorPositions.addFinishNumber(1,counter);
-				}
-			}
-			
-			if ( withDetector )
-			{
-				if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
-				if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
-				move(6,0);
-				printw("acc num %d, kin num %d",acc,kin);
-				
-				struct timeval currExpTime;
-				struct timezone tz;
-				gettimeofday(&currExpTime,&tz);
-				double deltaTime = (double)(currExpTime.tv_sec - prevExpTime.tv_sec) + 1e-6*(double)(currExpTime.tv_usec - prevExpTime.tv_usec);
-				if ( deltaTime > kinetic*1.8 )  {
-					move(5,0);
-					printw("frames skipping is possible: delta %.2f ms, exp %.2f ms",deltaTime*1e+3,kinetic*1e+3);
-				}
-				prevExpTime = currExpTime;
-				
-				if ( avImg )
-				{
-					if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
-					imageAverager.uploadImage(data);
-					move(2,0);
-					printw("maximum of running average images: ");
-					int linenum = 0;
-					for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
-					{
-						move(3+linenum,0);
-						printw("frames: %d max: %.0f mean: %.0f ",it->first,it->second,imageAverager.means[it->first]);
-						linenum++;
-					}
-				}
-				if ( counter%intParams["skip"] == 0)
-				{
-					struct timeval currRTATime;
-					struct timezone tz;
-					gettimeofday(&currRTATime,&tz);
-					double deltaTime = (double)(currRTATime.tv_sec - prevRTATime.tv_sec) + 1e-6*(double)(currRTATime.tv_usec - prevRTATime.tv_usec);
-					if ( deltaTime < 0.7 )  {
-						move(1,0);
-						printw(" frame no.: %d skipped",counter);
-						counter++;
-						continue;
-					}
-					prevRTATime = currRTATime;
-					
-					if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
-					if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
-					move(1,0);
-					printw("Current status: ");
-					switch (status) {
-					case DRV_SUCCESS: printw("OK"); break;
-					case DRV_P1INVALID: printw("invalid pointer"); break;
-					case DRV_P2INVALID: printw("array size is incorrect"); break;
-					case DRV_NO_NEW_DATA: printw("no new data"); break;
-					default: printw("unknown error");
-					}
-					printw(" frame no.: %d %f",counter,deltaTime);
-				}
-			}
-			else
-			{
-				if ( ( withHWPMotor && ( intParams["HWPMode"]==1 ) ) ||
-					( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
-				{
-					move(1,0);
-					printw(" frame no.: %d, angle %f",counter,HWPAngle);
-					msec_sleep(400.0);
-				}
-			}
-			// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-			if ( withHWPMotor && (intParams["HWPMode"]==1) )
-			{
-				if (motionStarted)
-				{
-					angleContainer.addStatusAndAngle(kin,1,HWPAngle);
-//					HWPisMovingPrev = 1;
 				}
 				else
 				{
-					angleContainer.addStatusAndAngle(kin,(int)(HWPisMoving!=0),HWPAngle);
-//					HWPisMovingPrev = HWPisMoving;
+					motionStarted = 0;
 				}
 			}
-			counter++;
 		}
+				
+		if ( withDetector )
+		{
+			if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
+			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
+			move(6,0);
+			printw("acc num %d, kin num %d",acc,kin);
+			
+			struct timeval currExpTime;
+			struct timezone tz;
+			gettimeofday(&currExpTime,&tz);
+			double deltaTime = (double)(currExpTime.tv_sec - prevExpTime.tv_sec) + 1e-6*(double)(currExpTime.tv_usec - prevExpTime.tv_usec);
+			if ( deltaTime > kinetic*1.8 )  {
+				move(5,0);
+				printw("frames skipping is possible: delta %.2f ms, exp %.2f ms",deltaTime*1e+3,kinetic*1e+3);
+			}
+			prevExpTime = currExpTime;
+			
+			if ( avImg )
+			{
+				if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
+				imageAverager.uploadImage(data);
+				move(2,0);
+				printw("maximum of running average images: ");
+				int linenum = 0;
+				for(map<int, double>::iterator it=imageAverager.maximums.begin(); it!=imageAverager.maximums.end(); ++it)
+				{
+					move(3+linenum,0);
+					printw("frames: %d max: %.0f mean: %.0f ",it->first,it->second,imageAverager.means[it->first]);
+					linenum++;
+				}
+			}
+			if ( counter%intParams["skip"] == 0)
+			{
+				struct timeval currRTATime;
+				struct timezone tz;
+				gettimeofday(&currRTATime,&tz);
+				double deltaTime = (double)(currRTATime.tv_sec - prevRTATime.tv_sec) + 1e-6*(double)(currRTATime.tv_usec - prevRTATime.tv_usec);
+				if ( deltaTime < 0.7 )  {
+					move(1,0);
+					printw(" frame no.: %d skipped",counter);
+					counter++;
+					continue;
+				}
+				prevRTATime = currRTATime;
+				
+				if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
+				if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
+				move(1,0);
+				printw("Current status: ");
+				switch (status) {
+				case DRV_SUCCESS: printw("OK"); break;
+				case DRV_P1INVALID: printw("invalid pointer"); break;
+				case DRV_P2INVALID: printw("array size is incorrect"); break;
+				case DRV_NO_NEW_DATA: printw("no new data"); break;
+				default: printw("unknown error");
+				}
+				printw(" frame no.: %d %f",counter,deltaTime);
+			}
+		}
+		else
+		{
+			if ( ( withHWPMotor && ( intParams["HWPMode"]==1 ) ) ||
+				( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
+			{
+				move(1,0);
+				printw(" frame no.: %d, angle %f",counter,HWPAngle);
+				msec_sleep(400.0);
+			}
+		}
+		// Logic: if HWP was moving in the end of previous step, it moved also during current step.
+		if ( withHWPMotor && (intParams["HWPMode"]==1) )
+		{
+			if (motionStarted)
+			{
+				angleContainer.addStatusAndAngle(kin,1,HWPAngle);
+//					HWPisMovingPrev = 1;
+			}
+			else
+			{
+				angleContainer.addStatusAndAngle(kin,(int)(HWPisMoving!=0),HWPAngle);
+//					HWPisMovingPrev = HWPisMoving;
+			}
+		}
+		counter++;
 	}
-	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) )
-		mirrorPositions.addFinishNumber(1,counter);
 	
 	werase(stdscr);
 	nodelay(stdscr, FALSE);
@@ -1202,7 +1154,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 	if (withMirrorAct)
 	{
-		mirrorPositions.print();
+		mirrorMotion.print();
 		
 		mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
 		usleep(500000);
