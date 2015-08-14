@@ -125,7 +125,7 @@ int StandaActuator::startMoveToPosition(int targetPosition)
 
 int StandaActuator::getPosition(int *isMoving,int *position)
 {
-	if ((result = get_status( device, &state )) != result_ok)
+	if ( (result = get_status( device, &state )) != result_ok )
 	{
 		cout << "error getting status: " << error_string( result ) << endl;
 		return 0;
@@ -135,3 +135,18 @@ int StandaActuator::getPosition(int *isMoving,int *position)
 	return 1;
 }
 
+int StandaActuator::setLight(int _light)
+{
+	extio_settings_t extio_settings;
+	
+	result = get_extio_settings( device, &extio_settings);
+
+	if ( _light) 
+		extio_settings.EXTIOModeFlags = EXTIO_SETUP_MODE_OUT_ON;
+	else
+		extio_settings.EXTIOModeFlags = EXTIO_SETUP_MODE_OUT_OFF;
+		
+	result = set_extio_settings( device, &extio_settings);
+	
+	return 1;
+}

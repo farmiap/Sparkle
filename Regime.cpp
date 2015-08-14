@@ -129,6 +129,10 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["mirrorPosFinder"] = 0;  // position of moving mirror when the finder and calibration source are in the beam
 	doubleParams["mirrorBeamTime"] = 20.0; // period of time for which the linear polarizer is inserted into the beam in beginning and end of series (activated by "mirror auto" command)
 
+	intParams["light"] = 0; // calibration light. 0 - off, 1 - on
+	intParamsValues["light"]["off"] = 0;
+	intParamsValues["light"]["on"] = 1;
+	
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
 	stringParams["prtaname"] = "";
@@ -674,6 +678,12 @@ int Regime::validate()
 		return 0;
 	}
 	
+	if ( ( intParams["light"] != 0 ) && ( intParams["light"] != 1 ) )
+	{
+		cout << "Calibration light should be off - 0 or on - 1" << endl;
+		return 0;
+	}
+	
 	cout << "validation successful" << endl;
 
 	return 1;
@@ -737,6 +747,8 @@ void Regime::commandHintsFill()
 	commandHints["HWPSwitchingMotion"] = "motion of HWP rotator before performing switch, degrees";
 	commandHints["HWPSwitchingSpeed"] = "speed of motion of HWP rotator performing switch, degrees/sec";
 	commandHints["HWPBand"] = "Current HWP code 0, 1, 2";
+	
+	commandHints["light"] = "Calibration light should be off - 0 or on - 1";
 	
 	commandHints["acq"]         = "start acquisition";
 	commandHints["prta"]        = "start run till abort";
@@ -872,6 +884,8 @@ int Regime::apply()
 			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
 			usleep(100000);
 		}
+		
+		mirrorActuatorStatus = mirrorActuator->setLight(intParams["light"]);
 	}
 	
 		
@@ -1621,6 +1635,10 @@ void Regime::addAuxiliaryHDU()
 	sprintf(newcard,"RONSIGMA = %.2f",RONSigma[intParams["preamp"]]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "RONSIGMA", card, & status);
+
+	sprintf(newcard,"LIGHT = %d",intParams["light"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "LIGHT", card, & status);
 	
 	if ( fits_close_file(fptr, &status) )       /* close the FITS file */
 		printerror( status );

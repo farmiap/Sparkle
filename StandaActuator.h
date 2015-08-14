@@ -26,6 +26,7 @@ public:
 	int initializeActuator(string _deviceName, double speed);
 	int startMoveToPosition(int targetPosition);
 	int getPosition(int *isMoving,int *position);
+	int setLight(int _light);
 };
 
 void print_state (status_t* state);
