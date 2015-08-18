@@ -133,6 +133,40 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParamsValues["light"]["off"] = 0;
 	intParamsValues["light"]["on"] = 1;
 	
+	stringParams["filter"] = "";
+	intParams["filter0Pos"] = 0;
+	intParams["filter1Pos"] = 0;
+	intParams["filter2Pos"] = 0;
+	intParams["filter3Pos"] = 0;
+	intParams["filter4Pos"] = 0;
+	intParams["filter5Pos"] = 0;
+	intParams["filter6Pos"] = 0;
+	intParams["filter7Pos"] = 0;
+	stringParams["filter0Name"] = "";
+	stringParams["filter1Name"] = "";
+	stringParams["filter2Name"] = "";
+	stringParams["filter3Name"] = "";
+	stringParams["filter4Name"] = "";
+	stringParams["filter5Name"] = "";
+	stringParams["filter6Name"] = "";
+	stringParams["filter7Name"] = "";
+	stringParams["filter0Ident"] = "";
+	stringParams["filter1Ident"] = "";
+	stringParams["filter2Ident"] = "";
+	stringParams["filter3Ident"] = "";
+	stringParams["filter4Ident"] = "";
+	stringParams["filter5Ident"] = "";
+	stringParams["filter6Ident"] = "";
+	stringParams["filter7Ident"] = "";
+	doubleParams["filter0Lambda"] = 0.0;
+	doubleParams["filter1Lambda"] = 0.0;
+	doubleParams["filter2Lambda"] = 0.0;
+	doubleParams["filter3Lambda"] = 0.0;
+	doubleParams["filter4Lambda"] = 0.0;
+	doubleParams["filter5Lambda"] = 0.0;
+	doubleParams["filter6Lambda"] = 0.0;
+	doubleParams["filter7Lambda"] = 0.0;
+	
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
 	stringParams["prtaname"] = "";
@@ -826,7 +860,40 @@ int Regime::validate()
 		cout << "Calibration light should be off - 0 or on - 1" << endl;
 		return 0;
 	}
+
+	int filtNum = -1;
+	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
+		if ( it->second == stringParams["filter"] )
+			istringstream ( it->first.substr(6,1) ) >> filtNum;
+
+	if ( filtNum < 0 )
+	{
+		cout << "There is no such filter in turret" << endl;
+		return 0;
+	}
 	
+	std::ostringstream oss;
+	oss << "filter" << filtNum << "Pos";
+	currentFilterPos = intParams[oss.str()];
+	if ( ( currentFilterPos < 0 ) || ( currentFilterPos > 24000 ) )
+	{
+		cout << "Filter position should be between 0 and 24000" << endl;
+		return 0;
+	}
+	oss.str("");
+	
+	oss << "filter" << filtNum << "Name";
+	currentFilterName = stringParams[oss.str()];
+	oss.str("");
+	
+	oss << "filter" << filtNum << "Ident";
+	currentFilterIdent = stringParams[oss.str()];
+	oss.str("");
+	
+	oss << "filter" << filtNum << "Lambda";
+	currentFilterLambda = doubleParams[oss.str()];
+	oss.str("");
+		
 	cout << "validation successful" << endl;
 
 	return 1;
@@ -1782,6 +1849,18 @@ void Regime::addAuxiliaryHDU()
 	sprintf(newcard,"LIGHT = %d",intParams["light"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "LIGHT", card, & status);
+	
+	sprintf(newcard,"FILTER = %s",currentFilterName.c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "FILTER", card, & status);
+	
+	sprintf(newcard,"FILTIDEN = %s",currentFilterIdent.c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "FILTIDEN", card, & status);
+	
+	sprintf(newcard,"FILTLAM = %.2f",currentFilterLambda);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "FILTLAM", card, & status);
 	
 	if ( fits_close_file(fptr, &status) )       /* close the FITS file */
 		printerror( status );

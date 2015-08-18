@@ -25,7 +25,7 @@ enum
 {
 	ACQUIRE = 1,
 	RUNTILLABORT,
-	GETTIMINGS,
+	GETTIMINGS,		
 	MAXFLUX,
 	RTASPOOL,
 	TESTNCURSES
@@ -62,6 +62,11 @@ private:
 	StandaRotationStage *HWPMotor;
 	StandaActuator *HWPActuator;
 	StandaActuator *mirrorActuator;
+	
+	int currentFilterPos;
+	string currentFilterName;
+	string currentFilterIdent;
+	double currentFilterLambda;
 	
 	Pathes pathes;
 	map<string, long> pathesCommands;
