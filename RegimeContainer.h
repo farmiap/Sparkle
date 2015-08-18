@@ -36,16 +36,18 @@ private:
 	StandaRotationStage *HWPMotor;
 	StandaActuator *HWPActuator;
 	StandaActuator *mirrorActuator;
+	StandaRotationStage *filterMotor;
 	
 	int withDetector;
 	int withHWPMotor;
 	int withHWPAct;
 	int withMirrorAct;
+	int withFilterMotor;
 	
 	void addRegime(string name);
 public:
 	RegimeContainer();
-	RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator);
+	RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor);
 	~RegimeContainer();
 	int procCommand(string command);
 	string currentRegimeName();

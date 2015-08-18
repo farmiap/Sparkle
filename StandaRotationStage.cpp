@@ -95,17 +95,21 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 		engine_settings.Antiplay = -20;
 	else
 		engine_settings.Antiplay = 20;
+	
 	// microstep fraction 8
-	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
+//	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
 
 	engine_settings.NomSpeed = (int)(speed/convSlope);
-	
+	cout << "engine speed " << speed << " eee " << convSlope << endl;
+	 
 	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
 	{
 		cout << "error setting engine settings: " << error_string( result ) << endl;
 		return 0;
 	}
+	
 	// do not stop at the borders (infinite motion)
+/*	
 	if ((result = get_edges_settings( device, &edges_settings )) != result_ok)
 	{
 		cout << "error getting edges settings: " << error_string( result ) << endl;
@@ -117,6 +121,7 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 		cout << "error setting edges settings: " << error_string( result ) << endl;
 		return 0;
 	}
+	*/
 /*
 	home_settings_t home_settings;
 	if ((result = get_home_settings( device, &home_settings )) != result_ok)
@@ -147,7 +152,7 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 			cout << "error getting status: " << error_string( result ) << endl;
 			return 0;
 		}
-		msec_sleep(50);
+		msec_sleep(150);
 	} while ( state.MoveSts != 0 );
 
 	cout << "done. Zeroing" << endl;

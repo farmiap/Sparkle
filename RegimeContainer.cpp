@@ -13,7 +13,7 @@ RegimeContainer::RegimeContainer()
 
 }
 
-RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator)
+RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor)
 {
 	regimeCommands["rlist"]  = RLIST;
 	regimeCommands["rnew"]   = RNEW;
@@ -31,12 +31,14 @@ RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHW
 	withHWPMotor = _withHWPMotor;
 	withHWPAct = _withHWPAct;
 	withMirrorAct = _withMirrorAct;
+	withFilterMotor = _withFilterMotor;
 	
 	HWPMotor = _HWPMotor;
 	HWPActuator = _HWPActuator;
 	mirrorActuator = _mirrorActuator;
+	filterMotor = _filterMotor;
 	
-	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,HWPMotor,HWPActuator,mirrorActuator);
+	regimes[DEFAULT_REGIME] = Regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,withFilterMotor,HWPMotor,HWPActuator,mirrorActuator,filterMotor);
 	currentName = DEFAULT_REGIME;
 }
 
@@ -82,7 +84,7 @@ int RegimeContainer::procCommand(string command)
 				break;
 			}
 			cout << "new regime: " << tokens[1] << endl;
-			regimes[tokens[1]] = Regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,HWPMotor,HWPActuator,mirrorActuator);
+			regimes[tokens[1]] = Regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,withFilterMotor,HWPMotor,HWPActuator,mirrorActuator,filterMotor);
 		}
 		break;
 		case RMOD:
@@ -227,7 +229,7 @@ int RegimeContainer::procCommand(string command)
 
 			string newname = ftokens[0];
 
-			Regime regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,HWPMotor,HWPActuator,mirrorActuator);
+			Regime regime(withDetector,withHWPMotor,withHWPAct,withMirrorAct,withFilterMotor,HWPMotor,HWPActuator,mirrorActuator,filterMotor);
 			while ( getline(file,str) )
 				regime.procCommand(str);
 			regimes[newname] = regime;

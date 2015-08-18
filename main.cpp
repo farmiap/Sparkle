@@ -27,10 +27,11 @@ int main(int argc, char* argv[])
 	int withHWPMotor  = 1;
 	int withHWPAct    = 1;
 	int withMirrorAct = 1;
-
+	int withFilterMotor  = 1;
+	
 	CommandLogger commandLogger("/home/safonov/SparkleLog/");
 	
-	while ((c = getopt (argc, argv, "dmniah")) != -1)
+	while ((c = getopt (argc, argv, "dmnifah")) != -1)
 		switch (c)
 		{
 		case 'd':
@@ -45,6 +46,9 @@ int main(int argc, char* argv[])
 		case 'i':
 			withMirrorAct = 0;
 			break;
+		case 'f':
+			withMirrorAct = 0;
+			break;
 		case 'a':
 			imageAveragerTest();
 			return 1;
@@ -54,6 +58,7 @@ int main(int argc, char* argv[])
 			cout << "-m work without HWP motor" << endl;
 			cout << "-n work without HWP actuator" << endl;
 			cout << "-i work without Mirror actuator" << endl;
+			cout << "-f work without Filter motor" << endl;
 			cout << "-a image averager test" << endl;
 			return 1;
 			break;
@@ -64,8 +69,9 @@ int main(int argc, char* argv[])
 	StandaRotationStage HWPMotor;
 	StandaActuator HWPActuator;
 	StandaActuator mirrorActuator;
+	StandaRotationStage filterMotor;
 	
-	RegimeContainer regimeContainer(withDetector,withHWPMotor,withHWPAct,withMirrorAct,&HWPMotor,&HWPActuator,&mirrorActuator);
+	RegimeContainer regimeContainer(withDetector,withHWPMotor,withHWPAct,withMirrorAct,withFilterMotor,&HWPMotor,&HWPActuator,&mirrorActuator,&filterMotor);
 
 	if ( withDetector )
 	{

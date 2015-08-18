@@ -22,16 +22,18 @@ Regime::Regime()
 {
 }
 
-Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator)
+Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor)
 {
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
 	withHWPAct = _withHWPAct;
 	withMirrorAct = _withMirrorAct;
+	withFilterMotor = _withFilterMotor;
 	
 	HWPMotor = _HWPMotor;
 	HWPActuator = _HWPActuator;
 	mirrorActuator = _mirrorActuator;
+	filterMotor = _filterMotor;
 	
 //	doubleParams["platePA"] = 0.0; // P.A. of hor+ direction relatively to camera enclosure (for ADC)
 //	intParams["plateMirror"] 0; // is image mirrored? (for ADC)
@@ -134,6 +136,13 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParamsValues["light"]["on"] = 1;
 	
 	stringParams["filter"] = "";
+	stringParams["filterDevice"] = "";	
+	doubleParams["filterSlope"] = 0.0;
+	doubleParams["filterIntercept"] = 0.0;
+	intParams["filterDir"] = 1;
+	intParamsValues["filterDir"]["cw"] = 0;
+	intParamsValues["filterDir"]["ccw"] = 1;
+	doubleParams["filterSpeed"] = 30;	
 	intParams["filter0Pos"] = 0;
 	intParams["filter1Pos"] = 0;
 	intParams["filter2Pos"] = 0;
@@ -861,6 +870,13 @@ int Regime::validate()
 		return 0;
 	}
 
+	if ( doubleParams["filterSpeed"] > 30.0 )
+	{
+		cout << "Filter motor speed is too high, validation failed" << endl;
+		return 0;
+	}
+
+
 	int filtNum = -1;
 	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
 		if ( it->second == stringParams["filter"] )
@@ -959,6 +975,12 @@ void Regime::commandHintsFill()
 	commandHints["HWPBand"] = "Current HWP code 0, 1, 2";
 	
 	commandHints["light"] = "Calibration light should be off - 0 or on - 1";
+	
+	commandHints["filter"]   = "Desired filter short name. E.g. B, or V, or R, or I. Configurable.";
+	commandHints["filterMotorDevice"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
+	commandHints["filterIntercept"]= "engine position when P.A. is zero (steps): > 0.0";
+	commandHints["filterSlope"]    = "degrees per engine step: > 0.0";
+	commandHints["filterSpeed"]    = "engine speed, (degrees per second)";
 	
 	commandHints["acq"]         = "start acquisition";
 	commandHints["prta"]        = "start run till abort";
@@ -1097,6 +1119,25 @@ int Regime::apply()
 		
 		mirrorActuatorStatus = mirrorActuator->setLight(intParams["light"]);
 	}
+	
+	int filterRotationStatus = 0;
+	
+	if ( withFilterMotor )
+	{
+		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDirInv"],doubleParams["filterSpeed"]);
+		
+		filterMotor->startMoveToAngle(currentFilterPos);
+		
+		usleep(500000);
+		int isMovingFlag=1;
+		double currentAngle;
+		while (isMovingFlag)
+		{
+			filterMotor->getAngle(&isMovingFlag,&currentAngle);
+			usleep(100000);
+		}
+	}
+	
 	
 		
 	return HWPRotationStatus;
