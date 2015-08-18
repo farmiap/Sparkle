@@ -19,6 +19,7 @@ enum
 	RMOD,
 	RDEL,
 	RPRINT,
+	RPRINT2,
 	RVAL,
 	RLOAD,
 	RSAVE,

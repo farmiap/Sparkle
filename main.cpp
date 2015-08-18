@@ -9,6 +9,7 @@
 #include "RegimeContainer.h"
 #include "ImageAverager.h"
 #include "StandaRotationStage.h"
+#include "CommandLogger.h"
 
 using namespace std;
 
@@ -27,6 +28,8 @@ int main(int argc, char* argv[])
 	int withHWPAct    = 1;
 	int withMirrorAct = 1;
 
+	CommandLogger commandLogger("/home/safonov/SparkleLog/");
+	
 	while ((c = getopt (argc, argv, "dmniah")) != -1)
 		switch (c)
 		{
@@ -90,15 +93,17 @@ int main(int argc, char* argv[])
 		        cin.clear(); // Sometimes getline behaves strangely after ncurses session, especially in screen. This is workaround.
 		        getline(cin,command);
 		}
+		
+		if ( command.compare("") == 0 )
+			continue;
 
+		commandLogger.log(regimeContainer.currentRegimeName().c_str(),command.c_str());
+		
 		if ( command.compare("exit") == 0 )
 		{
 			if ( finalize(withDetector,withHWPMotor,withHWPAct,startTemp) )
 					break;
 		}
-
-		if ( command.compare("") == 0 )
-			continue;
 
 		regimeContainer.procCommand(command);
 	}

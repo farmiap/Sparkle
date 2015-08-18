@@ -15,16 +15,17 @@ RegimeContainer::RegimeContainer()
 
 RegimeContainer::RegimeContainer(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator)
 {
-	regimeCommands["rlist"] = RLIST;
-	regimeCommands["rnew"]  = RNEW;
-	regimeCommands["rmod"]  = RMOD;
-	regimeCommands["rdel"]  = RDEL;
-	regimeCommands["rprint"]= RPRINT;
-	regimeCommands["rval"]  = RVAL;
-	regimeCommands["rapp"]  = RAPP;
-	regimeCommands["rload"] = RLOAD;
-	regimeCommands["rsave"] = RSAVE;
-	regimeCommands["rcopy"] = RCOPY;
+	regimeCommands["rlist"]  = RLIST;
+	regimeCommands["rnew"]   = RNEW;
+	regimeCommands["rmod"]   = RMOD;
+	regimeCommands["rdel"]   = RDEL;
+	regimeCommands["rprint"] = RPRINT;
+	regimeCommands["rprint2"]= RPRINT2;
+	regimeCommands["rval"]   = RVAL;
+	regimeCommands["rapp"]   = RAPP;
+	regimeCommands["rload"]  = RLOAD;
+	regimeCommands["rsave"]  = RSAVE;
+	regimeCommands["rcopy"]  = RCOPY;
 
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
@@ -144,8 +145,25 @@ int RegimeContainer::procCommand(string command)
 			else
 				nameToPrint = currentName;
 
+			regimes[nameToPrint].printNeat(nameToPrint);
+		}
+		break;
+		case RPRINT2:
+		{
+			if ( tokens.size() > 2 )
+			{
+				cout << "synt. error: rprint2 <name>" << endl;
+				break;
+			}
+			
+			string nameToPrint;
+			if ( tokens.size() > 1 )
+				nameToPrint = tokens[1];
+			else
+				nameToPrint = currentName;
+			
 			cout << "printing parameters of regime:" << nameToPrint << endl;
-
+			
 			regimes[nameToPrint].print();
 		}
 		break;

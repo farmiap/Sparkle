@@ -87,7 +87,7 @@ public:
 	void commandHintsFill();
 
 	void print();
-	void print2();
+	void printNeat(string name);
 	int saveToFile(string path,string name);
 
 	Regime();

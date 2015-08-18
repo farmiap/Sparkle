@@ -321,37 +321,180 @@ void Regime::print()
 	pathes.print();
 }
 
-void Regime::print2()
+void Regime::printNeat(string name)
 {
-/*
+
 	initscr();
 	raw();
 	noecho();
 	nodelay(stdscr, TRUE);
 
-	move(0,0);
+	int col1name =  1;
+	int col1val  = 12;
+	int col2name = 27;
+	int col2val  = 38;
+	int col3name = 53;
+	int col3val  = 64;
+	int lowname  =  1;
+	int lowval   = 12;
+	
 
+	int line = 0;
+	
+	move(line,0);
 	if ( active )
-		printw("----------------------------ACTIVE------------------------------");
+		   printw("*-----------REGIME:------------------------------APPLIED----------------------*");
 	else
-		printw("-X-X-X-X-X-X-X-X-X-X-X-X-X-INACTIVE-X-X-X-X-X-X-X-X-X-X-X-X-X-X-X");
+	           printw("*-X-X-X-X-X-REGIME--X-X-X-X-X-X-X-X-X-X-X-X-X--NOT APPLIED--X-X-X-X-X-X-X-X-X-*");
+	move(line,18);printw(" %s ",name.c_str());
+	line++;
+	move(line,0);printw("+---------General---------+---------Detector--------+---------Optomech--------+");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("+---------Detector--------|                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("+-------------------------+-------------------------+-------------------------+");line++;
+	move(line,0);printw("|                                                                             |");line++;
+	move(line,0);printw("|                                                                             |");line++;
+	move(line,0);printw("+-----------------------------------------------------------------------------+");line++;
+	move(line,0);printw("+-----------------------------to exit press q or x----------------------------+");line++;
 	
-	move(1,0);
-		printw("|       Detector        |");
-	move(2,0);
-	if ( intParams["shutter"] == 0 )	
-		printw("|shutter        close    |");
-	else
-		printw("|shutter        open     |");
-	move(3,0);
-		printw("|exposure");
-	move(3,7);
-		printw("%.2f",);
+	line = 2;
+	move(line,col1name);printw("object");
+	move(line,col1val); printw("%s",stringParams["object"].substr(0,16).c_str());line++;
+	move(line,col1name);printw("program");
+	move(line,col1val); printw("%s",stringParams["program"].substr(0,16).c_str());line++;
+	move(line,col1name);printw("author");
+	move(line,col1val); printw("%s",stringParams["author"].substr(0,16).c_str());line++;
+	move(line,col1name);printw("ra");
+	move(line,col1val); printw("%.4f d",doubleParams["ra"]);line++;
+	move(line,col1name);printw("dec");
+	move(line,col1val); printw("%+.4f d",doubleParams["dec"]);line++;
+	line++;
+	string shutterString;
+	for(map<string, int>::iterator it = intParamsValues["shutter"].begin();it != intParamsValues["shutter"].end();++it)
+		if ( it->second == intParams["shutter"] )
+			shutterString = it->first;
+	move(line,col1name);printw("shutter");
+	move(line,col1val); printw("%s",shutterString.substr(0,16).c_str());line++;
+	move(line,col1name);printw("exp.set");
+	move(line,col1val); printw("%.5f s",doubleParams["exposure"]);line++;
 	
+	if ( withDetector )
+	{
+		int status = DRV_SUCCESS;
+		
+		float exposure;
+		float accum;
+		float kinetic;
+		
+		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+		move(line,col1name);printw("exp.act");
+		move(line,col1val); printw("%.5f s",exposure);line++;
+		move(line,col1name);printw("cycle");
+		move(line,col1val); printw("%.5f s",kinetic);line++;
+	}
+	
+	
+	line = 2;
+	move(line,col2name);printw("left");
+	move(line,col2val); printw("%d pix",intParams["imLeft"]);line++;
+	move(line,col2name);printw("right");
+	move(line,col2val); printw("%d pix",intParams["imRight"]);line++;
+	move(line,col2name);printw("bottom");
+	move(line,col2val); printw("%d pix",intParams["imBottom"]);line++;
+	move(line,col2name);printw("top");
+	move(line,col2val); printw("%d pix",intParams["imTop"]);line++;
+	move(line,col2name);printw("binning");
+	move(line,col2val); printw("%d pix",intParams["bin"]);line++;
+	string ftModeString;
+	for(map<string, int>::iterator it = intParamsValues["ft"].begin();it != intParamsValues["ft"].end();++it)
+		if ( it->second == intParams["ft"] )
+			ftModeString = it->first;
+	move(line,col2name);printw("ft");
+	move(line,col2val); printw("%s",ftModeString.substr(0,16).c_str());line++;
+	move(line,col2name);printw("EMGain");
+	move(line,col2val); printw("%d",intParams["EMGain"]);line++;
+	string amplModeString;
+	for(map<string, int>::iterator it = intParamsValues["ampl"].begin();it != intParamsValues["ampl"].end();++it)
+		if ( it->second == intParams["ampl"] )
+			amplModeString = it->first;
+	move(line,col2name);printw("amplifier");
+	move(line,col2val); printw("%s",amplModeString.substr(0,16).c_str());line++;
+	string adconvModeString;
+	for(map<string, int>::iterator it = intParamsValues["adc"].begin();it != intParamsValues["adc"].end();++it)
+		if ( it->second == intParams["adc"] )
+			adconvModeString = it->first;
+	move(line,col2name);printw("A/D conv.");
+	move(line,col2val); printw("%s",adconvModeString.substr(0,16).c_str());line++;
+	string horSpeedModeString;
+	for(map<string, int>::iterator it = intParamsValues["horSpeed"].begin();it != intParamsValues["horSpeed"].end();++it)
+		if ( it->second == intParams["horSpeed"] )
+			horSpeedModeString = it->first;
+	move(line,col2name);printw("readout");
+	move(line,col2val); printw("%s",horSpeedModeString.substr(0,16).c_str());line++;
+	
+	line = 2;
+	move(line,col3name);printw("filter");line++;
+	move(line,col3name);printw("ADCMode");line++;
+	string mirrorModeString;
+	for(map<string, int>::iterator it = intParamsValues["mirrorMode"].begin();it != intParamsValues["mirrorMode"].end();++it)
+		if ( it->second == intParams["mirrorMode"] )
+			mirrorModeString = it->first;
+		move(line,col3name);printw("mirrorMode");
+	move(line,col3val); printw("%s",mirrorModeString.substr(0,16).c_str());line++;
+	string lightModeString;
+	for(map<string, int>::iterator it = intParamsValues["light"].begin();it != intParamsValues["light"].end();++it)
+		if ( it->second == intParams["light"] )
+			lightModeString = it->first;
+	move(line,col3name);printw("light");
+	move(line,col3val); printw("%s",lightModeString.substr(0,16).c_str());line++;
+	string HWPModeString;
+	for(map<string, int>::iterator it = intParamsValues["HWPMode"].begin();it != intParamsValues["HWPMode"].end();++it)
+		if ( it->second == intParams["HWPMode"] )
+			HWPModeString = it->first;
+	move(line,col3name);printw("HWPMode");
+	move(line,col3val); printw("%s",HWPModeString.substr(0,16).c_str());line++;
+	move(line,col3name);printw("HWPBand");
+	move(line,col3val); printw("%d",intParams["HWPBand"]);line++;
+	move(line,col3name);printw("HWPSpeed");
+	move(line,col3val); printw("%.2f d/s",doubleParams["HWPSpeed"]);line++;
+	if ( intParams["HWPMode"] == 1 )
+	{
+		move(line,col3name);printw("HWPStart");
+		move(line,col3val); printw("%.2f d",doubleParams["HWPStart"]);line++;
+		move(line,col3name);printw("HWPStep");
+		move(line,col3val); printw("%.2f d",doubleParams["HWPStep"]);line++;
+		move(line,col3name);printw("HWPPeriod");
+		move(line,col3val); printw("%.2f s",doubleParams["HWPPeriod"]);line++;
+	}
+	
+	line = 13;
+	move(line,lowname);printw("filename");
+	move(line,lowval); printw("%s",stringParams["fitsname"].substr(0,65).c_str());line++;
+	move(line,lowname);printw("directory");
+	move(line,lowval); printw("%s",stringParams["fitsdir"].substr(0,65).c_str());line++;
+	
+	move(16,0);
+	
+	char ch;
+	
+	while ( 1 ) {
+		ch = getch();
+		if ( (ch=='q') || (ch=='x') ) 
+			break;
+		msec_sleep(200);
+	}	
 	
 	nodelay(stdscr, FALSE);
 	endwin();
-	*/
+	
 }
 
 int Regime::saveToFile(string path,string name)
