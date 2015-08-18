@@ -1829,18 +1829,18 @@ void Regime::addAuxiliaryHDU()
 	if (intParams["adc"] == 0) // 14-bit
 		if (intParams["ampl"] == 0) // EM amplifier
 			if      (intParams["horSpeed"] == 0)
-				RONSigma = {93.33, 58.58, 49.64};
+			{RONSigma[0] = 93.33; RONSigma[1] = 58.58; RONSigma[2] = 49.64;}
 			else if (intParams["horSpeed"] == 1)
-				RONSigma = {82.54, 50.78, 39.48};
+			{RONSigma[0] = 82.54; RONSigma[1] = 50.78; RONSigma[2] = 39.48;}
 			else  
-				RONSigma = {61.02, 36.87, 30.02};
+			{RONSigma[0] = 61.02; RONSigma[1] = 36.87; RONSigma[2] = 30.02;}
 		else // conv. amplifier
-			RONSigma = {14.37, 10.56, 9.64};
+		{RONSigma[0] = 14.37; RONSigma[1] = 10.56; RONSigma[2] = 9.64;}
 	else // 16-bit
 		if (intParams["ampl"] == 0)
-			RONSigma = {36.24, 22.03, 18.56}; // EM amplifier
+		{RONSigma[0] = 36.24; RONSigma[1] = 22.03; RONSigma[2] = 18.56;} // EM amplifier
 		else
-			RONSigma = {8.45, 6.7, 6.08}; 	  // conv. amplifier
+		{RONSigma[0] = 8.45; RONSigma[1] = 6.7; RONSigma[2] = 6.08;} 	  // conv. amplifier
 	
 	sprintf(newcard,"RONSIGMA = %.2f",RONSigma[intParams["preamp"]]);
 	fits_parse_template(newcard, card, &keytype, &status);
