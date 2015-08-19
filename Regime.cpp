@@ -135,23 +135,24 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParamsValues["light"]["off"] = 0;
 	intParamsValues["light"]["on"] = 1;
 	
-	stringParams["filter"] = "";
-	stringParams["filterDevice"] = "";	
-	doubleParams["filterSlope"] = 0.0;
-	doubleParams["filterIntercept"] = 0.0;
-	intParams["filterDir"] = 1;
+	// filter wheel
+	stringParams["filter"] = ""; // Filter short name, e.g. V, B, etc.. These are configurable, e.g. filter0Name
+	stringParams["filterDevice"] = ""; 
+	doubleParams["filterSlope"] = 0.0; // degrees per engine step
+	doubleParams["filterIntercept"] = 0.0; 
+	intParams["filterDir"] = 1; // HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
 	intParamsValues["filterDir"]["cw"] = 0;
 	intParamsValues["filterDir"]["ccw"] = 1;
-	doubleParams["filterSpeed"] = 30;	
-	intParams["filter0Pos"] = 0;
-	intParams["filter1Pos"] = 0;
-	intParams["filter2Pos"] = 0;
-	intParams["filter3Pos"] = 0;
-	intParams["filter4Pos"] = 0;
-	intParams["filter5Pos"] = 0;
-	intParams["filter6Pos"] = 0;
-	intParams["filter7Pos"] = 0;
-	stringParams["filter0Name"] = "";
+	doubleParams["filterSpeed"] = 30.0; // speed (degrees per second)
+	doubleParams["filter0Pos"] = 0.0; // positions of filter wheel corresponding to different filters
+	doubleParams["filter1Pos"] = 0.0;
+	doubleParams["filter2Pos"] = 0.0;
+	doubleParams["filter3Pos"] = 0.0;
+	doubleParams["filter4Pos"] = 0.0;
+	doubleParams["filter5Pos"] = 0.0;
+	doubleParams["filter6Pos"] = 0.0;
+	doubleParams["filter7Pos"] = 0.0;
+	stringParams["filter0Name"] = ""; // short names of filters
 	stringParams["filter1Name"] = "";
 	stringParams["filter2Name"] = "";
 	stringParams["filter3Name"] = "";
@@ -159,7 +160,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["filter5Name"] = "";
 	stringParams["filter6Name"] = "";
 	stringParams["filter7Name"] = "";
-	stringParams["filter0Ident"] = "";
+	stringParams["filter0Ident"] = ""; // unique identifiers of filters (http://lnfm1.sai.msu.ru/kgo/local/tech/2.5m/equip/filters/KGO_FILTER_DATA.html)
 	stringParams["filter1Ident"] = "";
 	stringParams["filter2Ident"] = "";
 	stringParams["filter3Ident"] = "";
@@ -167,7 +168,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["filter5Ident"] = "";
 	stringParams["filter6Ident"] = "";
 	stringParams["filter7Ident"] = "";
-	doubleParams["filter0Lambda"] = 0.0;
+	doubleParams["filter0Lambda"] = 0.0; // central wavelenghts of filters
 	doubleParams["filter1Lambda"] = 0.0;
 	doubleParams["filter2Lambda"] = 0.0;
 	doubleParams["filter3Lambda"] = 0.0;
@@ -364,9 +365,8 @@ void Regime::print()
 	pathes.print();
 }
 
-void Regime::printNeat(string name)
+void Regime::printNeat(string name, int vshift)
 {
-
 	initscr();
 	raw();
 	noecho();
@@ -382,7 +382,7 @@ void Regime::printNeat(string name)
 	int lowval   = 12;
 	
 
-	int line = 0;
+	int line = 0 + vshift;
 	
 	move(line,0);
 	if ( active )
@@ -408,7 +408,7 @@ void Regime::printNeat(string name)
 	move(line,0);printw("+-----------------------------------------------------------------------------+");line++;
 	move(line,0);printw("+-----------------------------to exit press q or x----------------------------+");line++;
 	
-	line = 2;
+	line = 2 + vshift;
 	move(line,col1name);printw("object");
 	move(line,col1val); printw("%s",stringParams["object"].substr(0,16).c_str());line++;
 	move(line,col1name);printw("program");
@@ -445,7 +445,7 @@ void Regime::printNeat(string name)
 	}
 	
 	
-	line = 2;
+	line = 2 + vshift;
 	move(line,col2name);printw("left");
 	move(line,col2val); printw("%d pix",intParams["imLeft"]);line++;
 	move(line,col2name);printw("right");
@@ -483,7 +483,7 @@ void Regime::printNeat(string name)
 	move(line,col2name);printw("readout");
 	move(line,col2val); printw("%s",horSpeedModeString.substr(0,16).c_str());line++;
 	
-	line = 2;
+	line = 2 + vshift;
 	move(line,col3name);printw("filter");line++;
 	move(line,col3name);printw("ADCMode");line++;
 	string mirrorModeString;
@@ -518,7 +518,7 @@ void Regime::printNeat(string name)
 		move(line,col3val); printw("%.2f s",doubleParams["HWPPeriod"]);line++;
 	}
 	
-	line = 13;
+	line = 13 + vshift;
 	move(line,lowname);printw("filename");
 	move(line,lowval); printw("%s",stringParams["fitsname"].substr(0,65).c_str());line++;
 	move(line,lowname);printw("directory");
@@ -884,16 +884,16 @@ int Regime::validate()
 
 	if ( filtNum < 0 )
 	{
-		cout << "There is no such filter in turret" << endl;
+		cout << "There is no such filter in wheel" << endl;
 		return 0;
 	}
 	
 	std::ostringstream oss;
 	oss << "filter" << filtNum << "Pos";
 	currentFilterPos = intParams[oss.str()];
-	if ( ( currentFilterPos < 0 ) || ( currentFilterPos > 24000 ) )
+	if ( ( currentFilterPos < 0.0 ) || ( currentFilterPos > 360.0 ) )
 	{
-		cout << "Filter position should be between 0 and 24000" << endl;
+		cout << "Filter position should be between 0 and 360" << endl;
 		return 0;
 	}
 	oss.str("");
@@ -1137,8 +1137,6 @@ int Regime::apply()
 			usleep(100000);
 		}
 	}
-	
-	
 		
 	return HWPRotationStatus;
 }

@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 			withMirrorAct = 0;
 			break;
 		case 'f':
-			withMirrorAct = 0;
+			withFilterMotor = 0;
 			break;
 		case 'a':
 			imageAveragerTest();

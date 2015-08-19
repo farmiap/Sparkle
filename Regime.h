@@ -65,7 +65,7 @@ private:
 	StandaActuator *mirrorActuator;
 	StandaRotationStage *filterMotor;
 	
-	int currentFilterPos;
+	double currentFilterPos;
 	string currentFilterName;
 	string currentFilterIdent;
 	double currentFilterLambda;
@@ -94,7 +94,7 @@ public:
 	void commandHintsFill();
 
 	void print();
-	void printNeat(string name);
+	void printNeat(string name,int vshift);
 	int saveToFile(string path,string name);
 
 	Regime();

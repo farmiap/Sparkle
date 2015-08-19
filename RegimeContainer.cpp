@@ -147,7 +147,7 @@ int RegimeContainer::procCommand(string command)
 			else
 				nameToPrint = currentName;
 
-			regimes[nameToPrint].printNeat(nameToPrint);
+			regimes[nameToPrint].printNeat(nameToPrint,5);
 		}
 		break;
 		case RPRINT2:
