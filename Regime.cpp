@@ -1087,7 +1087,7 @@ int Regime::apply()
 	int mirrorActuatorStatus = 0;
 	if ( withMirrorAct ) 
 	{
-		mirrorActuatorStatus = mirrorActuator->initializeActuator(stringParams["mirrorDevice"],doubleParams["mirrorSpeed"]);
+		mirrorActuatorStatus = mirrorActuator->initializeActuator(stringParams["mirrorDevice"],intParams["mirrorSpeed"]);
 
 		switch ( intParams["mirrorMode"] )
 		{
@@ -1185,7 +1185,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 
 	int ch = 'a';
-	int counter=0;
+	int frameCounter=0;
 	int HWPisMoving;
 	int HWPisMovingPrev=0;
 	int motionStarted=0;
@@ -1279,7 +1279,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	MirrorMotionRTA mirrorMotion(mirrorActuator,intParams["mirrorPosOff"],intParams["mirrorPosLinpol"],doubleParams["mirrorBeamTime"]);
 	
 	while ( 1 ) {
-		if (counter>0) ch = getch();
+		if (frameCounter>0) ch = getch();
 		if ( (ch=='q') || (ch=='x') ) 
 			if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
 				quitRequest = 1;
@@ -1288,7 +1288,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		
 		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
 		{
-			quitRTA = mirrorMotion.process(counter,quitRequest);
+			quitRTA = mirrorMotion.process(frameCounter,quitRequest);
 		}
 		if ( quitRTA )
 		{
@@ -1306,13 +1306,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					move(2,0);
 					motionStarted = 1;
 					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
-					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",counter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
+					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",frameCounter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
 					if ( !HWPisMoving )
 						HWPMotor->startMoveByAngle(nextStepValue);
 					else
 					{
 						move(3,0);
-						printw("ATTENTION: HWP stage is skipping steps %d",counter);
+						printw("ATTENTION: HWP stage is skipping steps %d",frameCounter);
 					}
 				}
 				else
@@ -1325,9 +1325,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		if ( withDetector )
 		{
 			if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
-			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&kin);
+			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&frameCounter);
 			move(6,0);
-			printw("acc num %d, kin num %d",acc,kin);
+			printw("acc num %d, kin num %d",acc,frameCounter);
 			
 			struct timeval currExpTime;
 			struct timezone tz;
@@ -1353,7 +1353,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					linenum++;
 				}
 			}
-			if ( counter%intParams["skip"] == 0)
+			if ( frameCounter%intParams["skip"] == 0)
 			{
 				struct timeval currRTATime;
 				struct timezone tz;
@@ -1361,8 +1361,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				double deltaTime = (double)(currRTATime.tv_sec - prevRTATime.tv_sec) + 1e-6*(double)(currRTATime.tv_usec - prevRTATime.tv_usec);
 				if ( deltaTime < 0.7 )  {
 					move(1,0);
-					printw(" frame no.: %d skipped",counter);
-					counter++;
+					printw(" frame no.: %d skipped",frameCounter);
 					continue;
 				}
 				prevRTATime = currRTATime;
@@ -1378,16 +1377,17 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				case DRV_NO_NEW_DATA: printw("no new data"); break;
 				default: printw("unknown error");
 				}
-				printw(" frame no.: %d %f",counter,deltaTime);
+				printw(" frame no.: %d %f",frameCounter,deltaTime);
 			}
 		}
 		else
 		{
+			frameCounter++;
 			if ( ( withHWPMotor && ( intParams["HWPMode"]==1 ) ) ||
 				( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
 			{
 				move(1,0);
-				printw(" frame no.: %d, angle %f",counter,HWPAngle);
+				printw(" frame no.: %d, angle %f",frameCounter,HWPAngle);
 				msec_sleep(400.0);
 			}
 		}
@@ -1405,7 +1405,6 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //					HWPisMovingPrev = HWPisMoving;
 			}
 		}
-		counter++;
 	}
 	
 	werase(stdscr);
@@ -1413,7 +1412,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	refresh();
 	endwin();
 
-	if (withMirrorAct)
+	if (withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ))
 	{
 		mirrorMotion.print();
 		
