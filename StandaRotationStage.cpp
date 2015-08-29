@@ -99,8 +99,9 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	// microstep fraction 8
 //	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
 
-	engine_settings.NomSpeed = (int)(speed/convSlope);
-	cout << "engine speed " << speed << " eee " << convSlope << endl;
+	int newSpeed = (int)(speed/convSlope);
+	engine_settings.NomSpeed = newSpeed;
+	cout << "engine speed (steps/sec) " << newSpeed << ", eee " << convSlope << endl;
 	 
 	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
 	{

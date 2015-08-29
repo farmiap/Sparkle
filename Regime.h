@@ -78,6 +78,9 @@ private:
 	struct timeval prevExpTime;
 	
 	int switchHWP();
+
+	void printRegimeBlock(string name,int vshift);
+	void printRTABlock();
 	
 	void augmentPrimaryHDU();
 	void addAuxiliaryHDU();

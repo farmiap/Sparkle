@@ -9,6 +9,14 @@
 
 using namespace std;
 
+enum
+{
+	MIRRORMOVINGON = 1,
+	MIRRORISON,
+	MIRRORMOVINGOFF,
+	MIRRORISOFF,
+};
+
 class MirrorMotionRTA
 {
 private:
@@ -28,7 +36,7 @@ public:
 	MirrorMotionRTA(StandaActuator *_mirrorActuator,int _mirrorPosOff,int _mirrorPosLinpol, double _beamTime);
 	~MirrorMotionRTA();
 	
-	int process(int count, int exitRequested);
+	int process(int count, int exitRequested, int* mirrorStatus);
 	void print();
 	void writeIntervalsToFits(char* filename);
 };

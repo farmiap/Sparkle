@@ -371,7 +371,26 @@ void Regime::printNeat(string name, int vshift)
 	raw();
 	noecho();
 	nodelay(stdscr, TRUE);
+	clear();
+	
+	printRegimeBlock(name,vshift);
+	
+	char ch;
+	
+	while ( 1 ) {
+		ch = getch();
+		if ( (ch=='q') || (ch=='x') ) 
+			break;
+		msec_sleep(200);
+	}	
+	
+	nodelay(stdscr, FALSE);
+	endwin();
+	
+}
 
+void Regime::printRegimeBlock(string name, int vshift)
+{
 	int col1name =  1;
 	int col1val  = 12;
 	int col2name = 27;
@@ -381,14 +400,13 @@ void Regime::printNeat(string name, int vshift)
 	int lowname  =  1;
 	int lowval   = 12;
 	
-
 	int line = 0 + vshift;
 	
 	move(line,0);
 	if ( active )
-		   printw("*-----------REGIME:------------------------------APPLIED----------------------*");
+		printw("*-----------REGIME:------------------------------APPLIED----------------------*");
 	else
-	           printw("*-X-X-X-X-X-REGIME--X-X-X-X-X-X-X-X-X-X-X-X-X--NOT APPLIED--X-X-X-X-X-X-X-X-X-*");
+		printw("*-X-X-X-X-X-REGIME--X-X-X-X-X-X-X-X-X-X-X-X-X--NOT APPLIED--X-X-X-X-X-X-X-X-X-*");
 	move(line,18);printw(" %s ",name.c_str());
 	line++;
 	move(line,0);printw("+---------General---------+---------Detector--------+---------Optomech--------+");line++;
@@ -424,10 +442,10 @@ void Regime::printNeat(string name, int vshift)
 	for(map<string, int>::iterator it = intParamsValues["shutter"].begin();it != intParamsValues["shutter"].end();++it)
 		if ( it->second == intParams["shutter"] )
 			shutterString = it->first;
-	move(line,col1name);printw("shutter");
+		move(line,col1name);printw("shutter");
 	move(line,col1val); printw("%s",shutterString.substr(0,16).c_str());line++;
 	move(line,col1name);printw("exp.set");
-	move(line,col1val); printw("%.5f s",doubleParams["exposure"]);line++;
+	move(line,col1val); printw("%.5f s",doubleParams["exp"]);line++;
 	
 	if ( withDetector )
 	{
@@ -460,7 +478,7 @@ void Regime::printNeat(string name, int vshift)
 	for(map<string, int>::iterator it = intParamsValues["ft"].begin();it != intParamsValues["ft"].end();++it)
 		if ( it->second == intParams["ft"] )
 			ftModeString = it->first;
-	move(line,col2name);printw("ft");
+		move(line,col2name);printw("ft");
 	move(line,col2val); printw("%s",ftModeString.substr(0,16).c_str());line++;
 	move(line,col2name);printw("EMGain");
 	move(line,col2val); printw("%d",intParams["EMGain"]);line++;
@@ -468,19 +486,19 @@ void Regime::printNeat(string name, int vshift)
 	for(map<string, int>::iterator it = intParamsValues["ampl"].begin();it != intParamsValues["ampl"].end();++it)
 		if ( it->second == intParams["ampl"] )
 			amplModeString = it->first;
-	move(line,col2name);printw("amplifier");
+		move(line,col2name);printw("amplifier");
 	move(line,col2val); printw("%s",amplModeString.substr(0,16).c_str());line++;
 	string adconvModeString;
 	for(map<string, int>::iterator it = intParamsValues["adc"].begin();it != intParamsValues["adc"].end();++it)
 		if ( it->second == intParams["adc"] )
 			adconvModeString = it->first;
-	move(line,col2name);printw("A/D conv.");
+		move(line,col2name);printw("A/D conv.");
 	move(line,col2val); printw("%s",adconvModeString.substr(0,16).c_str());line++;
 	string horSpeedModeString;
 	for(map<string, int>::iterator it = intParamsValues["horSpeed"].begin();it != intParamsValues["horSpeed"].end();++it)
 		if ( it->second == intParams["horSpeed"] )
 			horSpeedModeString = it->first;
-	move(line,col2name);printw("readout");
+		move(line,col2name);printw("readout");
 	move(line,col2val); printw("%s",horSpeedModeString.substr(0,16).c_str());line++;
 	
 	line = 2 + vshift;
@@ -496,13 +514,13 @@ void Regime::printNeat(string name, int vshift)
 	for(map<string, int>::iterator it = intParamsValues["light"].begin();it != intParamsValues["light"].end();++it)
 		if ( it->second == intParams["light"] )
 			lightModeString = it->first;
-	move(line,col3name);printw("light");
+		move(line,col3name);printw("light");
 	move(line,col3val); printw("%s",lightModeString.substr(0,16).c_str());line++;
 	string HWPModeString;
 	for(map<string, int>::iterator it = intParamsValues["HWPMode"].begin();it != intParamsValues["HWPMode"].end();++it)
 		if ( it->second == intParams["HWPMode"] )
 			HWPModeString = it->first;
-	move(line,col3name);printw("HWPMode");
+		move(line,col3name);printw("HWPMode");
 	move(line,col3val); printw("%s",HWPModeString.substr(0,16).c_str());line++;
 	move(line,col3name);printw("HWPBand");
 	move(line,col3val); printw("%d",intParams["HWPBand"]);line++;
@@ -525,19 +543,21 @@ void Regime::printNeat(string name, int vshift)
 	move(line,lowval); printw("%s",stringParams["fitsdir"].substr(0,65).c_str());line++;
 	
 	move(16,0);
+}
+
+void Regime::printRTABlock()
+{
+	int line = 0;
 	
-	char ch;
+	move(line,0);
 	
-	while ( 1 ) {
-		ch = getch();
-		if ( (ch=='q') || (ch=='x') ) 
-			break;
-		msec_sleep(200);
-	}	
-	
-	nodelay(stdscr, FALSE);
-	endwin();
-	
+	move(line,0);printw("*-------------------------------RTA in progress-------------------------------*");line++;
+	move(line,0);printw("|---------General---------+----------Image----------+---------Optomech--------+");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
+	move(line,0);printw("|                         |                         |                         |");line++;
 }
 
 int Regime::saveToFile(string path,string name)
@@ -1156,6 +1176,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		return false;
 	}
 
+	int col1name =  1;
+	int col1val  = 12;
+	int col2name = 27;
+	int col2val  = 38;
+	int col3name = 53;
+	int col3val  = 64;
+	
 	int status = DRV_SUCCESS;
 
 	float exposure;
@@ -1203,6 +1230,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	if ( withHWPMotor && intParams["HWPMode"] )
 	{
 		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
+		cout << "HWP reaching starting position ... " << endl;
 		msec_sleep(200.0);
 		do
 		{
@@ -1221,6 +1249,22 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			HWPMotor->startContiniousMotion();
 		}
+		cout << "done" << endl;
+	}
+
+
+	int mirrorIsOn = 0;
+	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) )
+	{
+		cout << "Mirror reaching starting position ... " << endl;
+		mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
+		usleep(500000);
+		while ( isMovingFlag || ( abs(currentPosition-intParams["mirrorPosLinpol"]) > 100 ) )
+		{
+			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
+			usleep(100000);
+		}
+		cout << "done" << endl;
 	}
 
 	if (withDetector)
@@ -1230,32 +1274,23 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		if ( status == DRV_SUCCESS ) status = StartAcquisition();
 	}
 
-	int mirrorIsOn = 0;
-	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) )
-	{
-		mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
-		usleep(500000);
-		while (isMovingFlag)
-		{
-			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
-			usleep(100000);
-		}
-	}
-
 	initscr();
 	raw();
 	noecho();
 	nodelay(stdscr, TRUE);
+
+	printRTABlock();
+	printRegimeBlock("",7);
 	
 	if ( status == DRV_SUCCESS ) {
-		move(0,0);
+		move(2,col1name);printw("detector");
 		if ( withDetector )
 		{
-			printw("Run till abort started (press q or x to interrupt), width = %d, height = %d", width, height);
+			move(2,col1val);printw("on");
 		}
 		else
 		{
-			printw("Run till abort started (press q or x to interrupt), without detector");
+			move(2,col1val);printw("off");
 		}
 	} else {
 		nodelay(stdscr, FALSE);
@@ -1265,16 +1300,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		return false;
 	}
 	
+	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
+	{
+		move(3,col3name);printw("mirror");
+		move(3,col3val);printw("is on");
+	}
+	
+	
 	struct timeval startTime;
 	struct timezone startTz;
 	gettimeofday(&startTime,&startTz);
 	
-	int mirrorIsOnStart = 1;
-	int mirrorIsMovingStart = 0;
-	int mirrorIsOnEnd = 0;
-	int mirrorIsMovingEnd = 0;
 	int quitRequest = 0;
 	int quitRTA = 0;
+	int mirrorStatus = 0;
 	
 	MirrorMotionRTA mirrorMotion(mirrorActuator,intParams["mirrorPosOff"],intParams["mirrorPosLinpol"],doubleParams["mirrorBeamTime"]);
 	
@@ -1282,13 +1321,25 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		if (frameCounter>0) ch = getch();
 		if ( (ch=='q') || (ch=='x') ) 
 			if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
+			{
 				quitRequest = 1;
+				move(6,col1name);printw("exit requested");
+			}
 			else
 				quitRTA = 1;
 		
 		if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
 		{
-			quitRTA = mirrorMotion.process(frameCounter,quitRequest);
+			quitRTA = mirrorMotion.process(frameCounter,quitRequest,&mirrorStatus);
+			move(3,col3name);printw("mirror");
+			move(3,col3val);
+			switch (mirrorStatus) {
+				case MIRRORMOVINGON: 	printw("moving on  "); break;
+				case MIRRORMOVINGOFF:	printw("moving off "); break;
+				case MIRRORISON: 	printw("is on      "); break;
+				case MIRRORISOFF: 	printw("is off     "); break;
+				default: break;
+			}
 		}
 		if ( quitRTA )
 		{
@@ -1303,16 +1354,19 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				int currentStepNumber;
 				if ( HWPTrigger.check(&currentStepNumber) )
 				{
-					move(2,0);
 					motionStarted = 1;
 					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
-					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",frameCounter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
+					move(2,col3name);printw("HWP step");
+					move(2,col3val);printw("%d",currentStepNumber);
+//					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",frameCounter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
 					if ( !HWPisMoving )
+					{
 						HWPMotor->startMoveByAngle(nextStepValue);
+						move(6,col3name);printw("                         ");
+					}
 					else
 					{
-						move(3,0);
-						printw("ATTENTION: HWP stage is skipping steps %d",frameCounter);
+						move(6,col3name);printw("ATT: HWP skips steps");
 					}
 				}
 				else
@@ -1326,9 +1380,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
 			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&frameCounter);
-			move(6,0);
-			printw("acc num %d, kin num %d",acc,frameCounter);
-			
+			move(3,col1name);printw("frame no.");
+			move(3,col1val);printw("%d",frameCounter);
+/*			
 			struct timeval currExpTime;
 			struct timezone tz;
 			gettimeofday(&currExpTime,&tz);
@@ -1338,7 +1392,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				printw("frames skipping is possible: delta %.2f ms, exp %.2f ms",deltaTime*1e+3,kinetic*1e+3);
 			}
 			prevExpTime = currExpTime;
-			
+*/
+
 			if ( avImg )
 			{
 				if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
@@ -1360,14 +1415,16 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				gettimeofday(&currRTATime,&tz);
 				double deltaTime = (double)(currRTATime.tv_sec - prevRTATime.tv_sec) + 1e-6*(double)(currRTATime.tv_usec - prevRTATime.tv_usec);
 				if ( deltaTime < 0.7 )  {
-					move(1,0);
-					printw(" frame no.: %d skipped",frameCounter);
+//					move(1,0);
+//					printw(" frame no.: %d skipped",frameCounter);
 					continue;
 				}
 				prevRTATime = currRTATime;
 				
 				if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
 				if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
+
+				/*
 				move(1,0);
 				printw("Current status: ");
 				switch (status) {
@@ -1377,7 +1434,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				case DRV_NO_NEW_DATA: printw("no new data"); break;
 				default: printw("unknown error");
 				}
-				printw(" frame no.: %d %f",frameCounter,deltaTime);
+				*/
+//				printw(" frame no.: %d %f",frameCounter,deltaTime);
 			}
 		}
 		else
@@ -1386,8 +1444,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			if ( ( withHWPMotor && ( intParams["HWPMode"]==1 ) ) ||
 				( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
 			{
-				move(1,0);
-				printw(" frame no.: %d, angle %f",frameCounter,HWPAngle);
+				move(3,col1name);printw("frame no.");
+				move(3,col1val);printw("%d",frameCounter);
 				msec_sleep(400.0);
 			}
 		}
@@ -1415,19 +1473,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	if (withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ))
 	{
 		mirrorMotion.print();
-		
+		cout << "Mirror reaching final position ... " << endl;
 		mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
 		usleep(500000);
 		int isMovingFlag=1;
 		int currentPosition;
-		while (isMovingFlag)
+		while (isMovingFlag || ( abs(currentPosition-intParams["mirrorPosOff"]) > 100 ) )
 		{
 			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
 			usleep(100000);
 		}
+		cout << "Done." << endl;
 	}
 	
-	// First we write essential keywords into primary HDU header, substituting some uneccesary technical keywords. It is not possible to ADD keywords, this would very expensive in terms of time.
+	// First we write essential keywords into primary HDU header, substituting some unneccesary technical keywords. It is not possible to ADD keywords, this would very expensive in terms of time.
 	augmentPrimaryHDU(); // keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
 
 	// Then we add data on rotation of HWP (if any) and motion of Mirror (if any)

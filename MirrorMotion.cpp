@@ -33,7 +33,7 @@ MirrorMotionRTA::~MirrorMotionRTA()
 {
 }
 
-int MirrorMotionRTA::process(int count,int exitRequested)
+int MirrorMotionRTA::process(int count,int exitRequested,int *mirrorStatus)
 {
 	int isMovingFlag;
 	int currentPosition;
@@ -55,6 +55,7 @@ int MirrorMotionRTA::process(int count,int exitRequested)
 			{
 				mirrorActuator->startMoveToPosition(mirrorPosLinpol);
 				isMovingOn = 1;
+				*mirrorStatus = MIRRORMOVINGON;
 				intervals[currIntrv][1] = count;
 				currIntrv++;
 				intervals.resize(currIntrv+1);
@@ -68,6 +69,7 @@ int MirrorMotionRTA::process(int count,int exitRequested)
 					gettimeofday(&finishTime,&tz);	
 					isMovingOn = 0;
 					isOnFinish = 1;
+					*mirrorStatus = MIRRORISON;
 					intervals[currIntrv][0] = count;
 					intervals[currIntrv][2] = 1;
 					return 0;
@@ -91,6 +93,7 @@ int MirrorMotionRTA::process(int count,int exitRequested)
 			mirrorActuator->startMoveToPosition(mirrorPosOff);
 			isMovingOff = 1;
 			isOnStart = 0;
+			*mirrorStatus = MIRRORMOVINGOFF;
 			intervals[currIntrv][1] = count;
 			currIntrv++;
 			intervals.resize(currIntrv+1);
@@ -104,6 +107,7 @@ int MirrorMotionRTA::process(int count,int exitRequested)
 				intervals[currIntrv][0] = count;
 				intervals[currIntrv][2] = 0;
 				isMovingOff = 0;
+				*mirrorStatus = MIRRORISOFF;
 			}
 		}
 		return 0;
