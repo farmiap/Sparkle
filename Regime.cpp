@@ -1437,6 +1437,11 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				*/
 //				printw(" frame no.: %d %f",frameCounter,deltaTime);
 			}
+			if ( intParams["HWPMode"] == 1 )
+			{
+				// do not poll detector too frequently. During continious motion of HWP it is not needed
+				msec_sleep(250.0);
+			}
 		}
 		else
 		{
