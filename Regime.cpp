@@ -9,12 +9,22 @@
 #include "atmcdLXd.h"
 #include <fitsio.h>
 
+#include <vector>
+#include <iterator>
+
+
 #include "Regime.h"
 #include "ImageAverager.h"
 #include "HWPRotation.h"
 #include "MirrorMotion.h"
 
 #define TEMP_MARGIN 3.0             // maximum stabilized temperature deviation from required
+
+#define SAT14BIT 15500
+#define SUBSAT14BIT 14000
+#define SAT16BIT 65000
+#define SUBSAT16BIT 60000
+#define IMPROCRED 10
 
 using namespace std;
 
@@ -176,6 +186,11 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["filter5Lambda"] = 0.0;
 	doubleParams["filter6Lambda"] = 0.0;
 	doubleParams["filter7Lambda"] = 0.0;
+	
+	intParams["winLeft"] = 1;
+	intParams["winRight"] = 512;
+	intParams["winBottom"] = 1;
+	intParams["winTop"] = 512;
 	
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
@@ -433,9 +448,9 @@ void Regime::printRegimeBlock(string name, int vshift)
 	move(line,col1val); printw("%s",stringParams["program"].substr(0,16).c_str());line++;
 	move(line,col1name);printw("author");
 	move(line,col1val); printw("%s",stringParams["author"].substr(0,16).c_str());line++;
-	move(line,col1name);printw("ra");
+	move(line,col1name);printw("objectRA");
 	move(line,col1val); printw("%.4f d",doubleParams["ra"]);line++;
-	move(line,col1name);printw("dec");
+	move(line,col1name);printw("objectDec");
 	move(line,col1val); printw("%+.4f d",doubleParams["dec"]);line++;
 	line++;
 	string shutterString;
@@ -816,6 +831,42 @@ int Regime::validate()
 		return 0;
 	}
 
+	if (( intParams["winLeft"] < 1 ) || ( intParams["winLeft"] > 512 ))
+	{
+		cout << "window left side validation failed" << endl;
+		return 0;
+	}
+
+	if (( intParams["winRight"] < 1 ) || ( intParams["winRight"] > 512 ))
+	{
+		cout << "window right side validation failed" << endl;
+		return 0;
+	}
+
+	if (( intParams["winBottom"] < 1 ) || ( intParams["winBottom"] > 512 ))
+	{
+		cout << "window bottom side validation failed" << endl;
+		return 0;
+	}
+
+	if (( intParams["winTop"] < 1 ) || ( intParams["winTop"] > 512 ))
+	{
+		cout << "window top side validation failed" << endl;
+		return 0;
+	}
+
+	if ( intParams["winLeft"] >= intParams["winRight"] )
+	{
+		cout << "window has non-positive width, validation failed" << endl;
+		return 0;
+	}
+
+	if ( intParams["winBottom"] >= intParams["winTop"] )
+	{
+		cout << "window has non-positive height, validation failed" << endl;
+		return 0;
+	}
+
 
 	if (( doubleParams["exp"] < 0.001 ) || ( doubleParams["exp"] > 1000.0 ))
 	{
@@ -975,7 +1026,7 @@ void Regime::commandHintsFill()
 	commandHints["exp"]     = "exposure time in seconds";
 
 	commandHints["HWPMode"]      = "0 - don't use HWP, 1 - step mode, 2 - continous rotation mode.";
-	commandHints["HWPDirInv"]   = "HWP positive direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["HWPDir"]   = "HWP positive direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
 	commandHints["HWPDevice"]   = "HWP motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["HWPPairNum"]  = "number of pairs in group: >= 1";
 	commandHints["HWPGroupNum"] = "number of groups: >= 1";
@@ -1002,6 +1053,11 @@ void Regime::commandHintsFill()
 	commandHints["filterSlope"]    = "degrees per engine step: > 0.0";
 	commandHints["filterSpeed"]    = "engine speed, (degrees per second)";
 	
+	commandHints["winLeft"]  = "window (star parameter determination) left side: 1-512";
+	commandHints["winRight"] = "window (star parameter determination) right side: 1-512";
+	commandHints["winBottom"]= "window (star parameter determination) bottom side: 1-512";
+	commandHints["winTop"]   = "window (star parameter determination) top side: 1-512";
+	
 	commandHints["acq"]         = "start acquisition";
 	commandHints["prta"]        = "start run till abort";
 }
@@ -1025,8 +1081,7 @@ int Regime::apply()
 
 		if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
 
-		int width, height;
-		if ( status == DRV_SUCCESS ) status = GetDetector(&width,&height);
+		if ( status == DRV_SUCCESS ) status = GetDetector(&detWidth,&detHeight);
 		if ( status == DRV_SUCCESS ) status = SetShutter(1,(intParams["shutter"]==1)?1:2,50,50);
 		if ( status == DRV_SUCCESS ) status = SetFrameTransferMode(intParams["ft"]);
 		if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
@@ -1051,7 +1106,15 @@ int Regime::apply()
 				if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
 			}
 		}
-		if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
+		if ( intParams["ampl"] == 0 )
+		{
+			if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
+		}
+		else
+		{
+			// for conv amplifier image X axis is switched
+			if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],detWidth-intParams["imRight"]+1,detWidth-intParams["imLeft"]+1,intParams["imBottom"],intParams["imTop"]);
+		}
 	}
 
 	if ( status == DRV_SUCCESS )
@@ -1069,7 +1132,7 @@ int Regime::apply()
 
 	if ( withHWPMotor )
 	{
-		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDirInv"],doubleParams["HWPSpeed"]);
+		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"]);
 	}
 
 	int HWPActuatorStatus = 0;
@@ -1197,6 +1260,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	width = floor(((double)intParams["imRight"]-(double)intParams["imLeft"]+1)/(double)intParams["bin"]);
 	height = floor(((double)intParams["imTop"]-(double)intParams["imBottom"]+1)/(double)intParams["bin"]);
 	long datasize = width*height; // do not divide by binning, segm. fault instead!
+	long datasize2 = long(datasize/IMPROCRED); // create array smaller than main one, for purposes of processImage
 	
 	vector<int> periods;
 	periods.push_back(3);
@@ -1209,7 +1273,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 	
 	at_32 *data = new at_32[datasize];
-
+	at_32 *data2 = new at_32[datasize2]; // this is undensified copy
+	
 
 	int ch = 'a';
 	int frameCounter=0;
@@ -1218,9 +1283,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int motionStarted=0;
 	int isMovingFlag=1;
 	int currentPosition;
-	
 	int acc=0;
-	int kin=0;
 	
 	double HWPAngle;
 	
@@ -1297,6 +1360,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		endwin();
 		cout << "Run till abort failed, status=" << status << endl;
 		delete data;
+		delete data2;
 		return false;
 	}
 	
@@ -1314,6 +1378,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int quitRequest = 0;
 	int quitRTA = 0;
 	int mirrorStatus = 0;
+	int imageGot = 0;
 	
 	MirrorMotionRTA mirrorMotion(mirrorActuator,intParams["mirrorPosOff"],intParams["mirrorPosLinpol"],doubleParams["mirrorBeamTime"]);
 	
@@ -1382,21 +1447,51 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			if ( status == DRV_SUCCESS ) status = GetAcquisitionProgress(&acc,&frameCounter);
 			move(3,col1name);printw("frame no.");
 			move(3,col1val);printw("%d",frameCounter);
-/*			
-			struct timeval currExpTime;
-			struct timezone tz;
-			gettimeofday(&currExpTime,&tz);
-			double deltaTime = (double)(currExpTime.tv_sec - prevExpTime.tv_sec) + 1e-6*(double)(currExpTime.tv_usec - prevExpTime.tv_usec);
+			
+//			struct timeval currExpTime1,currExpTime2;
+//			struct timezone tz;
+//			gettimeofday(&currExpTime1,&tz);
+/*			double deltaTime = (double)(currExpTime.tv_sec - prevExpTime.tv_sec) + 1e-6*(double)(currExpTime.tv_usec - prevExpTime.tv_usec);
 			if ( deltaTime > kinetic*1.8 )  {
 				move(5,0);
 				printw("frames skipping is possible: delta %.2f ms, exp %.2f ms",deltaTime*1e+3,kinetic*1e+3);
 			}
-			prevExpTime = currExpTime;
 */
+//			prevExpTime = currExpTime;
+
+
+			if ( intParams["HWPMode"] == 2 )
+			{
+				if ( (status==DRV_SUCCESS) && !imageGot ) status=GetMostRecentImage(data,datasize);
+				imageGot = 1;
+				double xpos,ypos,intensity;
+				int satPix,subsatPix;
+				processImage(data,data2,width,height,datasize2,&xpos,&ypos,&satPix,&subsatPix,&intensity);
+				move(2,col2name);printw("pos. X");
+				move(2,col2val);printw("%.1f   ",xpos);
+				move(3,col2name);printw("pos. Y");
+				move(3,col2val);printw("%.1f   ",ypos);
+				move(4,col2name);printw("intensity");
+				move(4,col2val);printw("               ");
+				move(4,col2val);printw("%e",intensity);
+				move(5,col2name);printw("sat pix");
+				move(5,col2val);printw("%d     ",satPix);
+				move(6,col2name);printw("subsat pix");
+				move(6,col2val);printw("%d     ",subsatPix);
+			}
+
+//			gettimeofday(&currExpTime2,&tz);
+//			double deltaTime = (double)(currExpTime2.tv_sec - currExpTime1.tv_sec) + 1e-6*(double)(currExpTime2.tv_usec - currExpTime1.tv_usec);
+//			move(25,0);printw("delta %.2f ms",deltaTime*1e+3);
+//			if ( deltaTime > kinetic*1.8 )  {
+//				move(5,0);
+//				printw("frames skipping is possible: delta %.2f ms, exp %.2f ms",deltaTime*1e+3,kinetic*1e+3);
+//			}
 
 			if ( avImg )
 			{
-				if (status==DRV_SUCCESS) status=GetMostRecentImage(data,datasize);
+				if ( (status==DRV_SUCCESS) && !imageGot ) status=GetMostRecentImage(data,datasize);
+				imageGot = 1;				
 				imageAverager.uploadImage(data);
 				move(2,0);
 				printw("maximum of running average images: ");
@@ -1421,7 +1516,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				}
 				prevRTATime = currRTATime;
 				
-				if ( ( !avImg ) && (status==DRV_SUCCESS) ) status=GetMostRecentImage(data,datasize);
+				if ( (status==DRV_SUCCESS) && !imageGot) status=GetMostRecentImage(data,datasize);
+				imageGot = 1;				
 				if (status==DRV_SUCCESS) doFits(width,height,(char*)pathes.getRTAPath(),data);
 
 				/*
@@ -1437,11 +1533,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				*/
 //				printw(" frame no.: %d %f",frameCounter,deltaTime);
 			}
-			if ( intParams["HWPMode"] == 1 )
+			if ( intParams["HWPMode"] == 2 )
 			{
 				// do not poll detector too frequently. During continious motion of HWP it is not needed
 				msec_sleep(250.0);
 			}
+			imageGot = 0;
 		}
 		else
 		{
@@ -1459,12 +1556,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			if (motionStarted)
 			{
-				angleContainer.addStatusAndAngle(kin,1,HWPAngle);
+				angleContainer.addStatusAndAngle(frameCounter,1,HWPAngle);
 //					HWPisMovingPrev = 1;
 			}
 			else
 			{
-				angleContainer.addStatusAndAngle(kin,(int)(HWPisMoving!=0),HWPAngle);
+				angleContainer.addStatusAndAngle(frameCounter,(int)(HWPisMoving!=0),HWPAngle);
 //					HWPisMovingPrev = HWPisMoving;
 			}
 		}
@@ -1512,6 +1609,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, PLATEPA, PLATEMIR, HWPMODE, HWPBAND, RONSIGMA
 	
 	delete data;
+	delete data2;
 	return true;
 }
 
@@ -1974,9 +2072,9 @@ void doFits(int nx, int ny, char* filename,at_32 *data)
 	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
 	int status, ii, jj;
 	long  fpixel, nelements;
-	long *array[nx];
+	long *array[ny];
 
-	int bitpix   =  FLOAT_IMG; /* 32-bit double pixel values       */
+	int bitpix   =  LONG_IMG; 
 	long naxis    =   2;  /* 2-dimensional image                            */
 	long naxes[2] = { nx, ny};   /* image is nx pixels wide by ny rows */
 
@@ -1997,14 +2095,15 @@ void doFits(int nx, int ny, char* filename,at_32 *data)
 	if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
 		printerror( status );
 
+	fpixel = 1;                               /* first pixel to write      */
+	nelements = naxes[0] * naxes[1];          /* number of pixels to write */
+		
 	for (jj = 0; jj < naxes[1]; jj++){
 		for (ii = 0; ii < naxes[0]; ii++) {
 			array[jj][ii] = data[ii+naxes[0]*jj];
         	}
 	}
 
-	fpixel = 1;                               /* first pixel to write      */
-	nelements = naxes[0] * naxes[1];          /* number of pixels to write */
 
 /* write the array of unsigned integers to the FITS file */
 	if ( fits_write_img(fptr, TLONG, fpixel, nelements, array[0], &status) )
@@ -2020,6 +2119,123 @@ void doFits(int nx, int ny, char* filename,at_32 *data)
 	return;
 }
 
+void Regime::processImage(at_32* data, at_32* data2, int width, int height, int datasize2, double* xpos, double *ypos, int* satPix, int* subsatPix, double* inten)
+{
+	long datasize = width*height;
+	
+	int satTres,subsatTres;
+	if ( intParams["adc"] == 0 )
+	{
+		satTres = SAT14BIT;
+		subsatTres = SUBSAT14BIT;
+	}
+	else
+	{
+		satTres = SAT16BIT;
+		subsatTres = SUBSAT16BIT;
+	}
+//	move(25,0);printw("w:%d, h:%d, pix1:%d, pix2:%d, pix3:%d, tres:%d",width,height,data[100],data[200],data[300],satTres);
+
+	// crude estimation of background
+	// prepare rarefied copy of array data
+	for(long i = 0; i < datasize2; i++)
+		data2[i] = data[i*IMPROCRED];
+	// sort it
+	qsort(data2, datasize2, sizeof(at_32), intCompare);
+	// find median, use it as background level
+	int mbias = data2[int(datasize2/2)];
+	
+	// window corresponding to field diaphragm
+	long Nleft = (long)((double)(intParams["winLeft"]-intParams["imLeft"])/(double)intParams["bin"]);
+	long Nright = (long)((double)(intParams["winRight"]-intParams["imLeft"])/(double)intParams["bin"]);
+	long Nbottom = (long)((double)(intParams["winBottom"]-intParams["imBottom"])/(double)intParams["bin"]);
+	long Ntop = (long)((double)(intParams["winTop"]-intParams["imBottom"])/(double)intParams["bin"]);
+	
+	// find preliminary COG
+	long _satPix = 0;
+	long _subsatPix = 0;
+	long _inten = 0;
+	long _posX = 0;
+	long _posY = 0;
+	long x,y;
+	for(long i = 0; i < datasize; i++)
+	{
+		y = int(i/width);
+		x = i - y*width;
+		
+		if ( (x>=Nleft) && (x<=Nright) && (y>=Nbottom) && (y<=Ntop) )
+		{
+			if ( data[i] > satTres ) 
+				_satPix++;
+			if ( data[i] > subsatTres ) 
+				_subsatPix++;
+			_inten += data[i]-mbias;
+			_posX += x*(data[i]-mbias);
+			_posY += y*(data[i]-mbias);
+		}
+	}
+	
+	if ( _inten > 1 )
+	{
+		_posX = _posX/_inten;
+		_posY = _posY/_inten;
+	}
+	else
+	{
+		*xpos = -1.0;
+		*ypos = -1.0;	
+		*satPix = -1;
+		*subsatPix = -1;
+		*inten = -1.0;
+		return;
+	}
+	
+	// very crudely we estimate expected image size as 1/8 of detector size
+	long windowHalfSize = (32/intParams["bin"]);
+	long _nposX = 0;
+	long _nposY = 0;
+	long _ninten = 0;
+	
+	// final estimation of COG, windowed
+	for(long i = 0; i < datasize; i++)
+	{
+		y = int(i/width);
+		x = i - y*width;
+		
+		if ( (x>=(_posX-windowHalfSize)) && (x<=(_posX+windowHalfSize)) && (y>=(_posY-windowHalfSize)) && (y<=(_posY+windowHalfSize)) )
+		{
+			_ninten += data[i]-mbias;
+			_nposX += x*(data[i]-mbias);
+			_nposY += y*(data[i]-mbias);
+		}
+	}
+	
+	
+	if ( _ninten > 1 )
+	{
+		*ypos = (intParams["bin"]*(double)_nposY/(double)_ninten) + intParams["imBottom"];
+		*xpos = (intParams["bin"]*(double)_nposX/(double)_ninten) + intParams["imLeft"];
+//		if ( intParams["ampl"] == 0 )
+//		{
+//			*xpos = (intParams["bin"]*(double)_nposX/(double)_ninten) + intParams["imLeft"];
+//		}
+//		else
+//		{
+			// for conv amplifier image X axis is switched
+//			*xpos = (intParams["bin"]*(width-((double)_nposX/(double)_ninten))) + (detWidth - intParams["imRight"]);
+//		}
+	}
+	else
+	{
+		*xpos = -1.0;
+		*ypos = -1.0;
+	}
+	
+	*satPix = _satPix;
+	*subsatPix = _subsatPix;
+	*inten = (double)_ninten;
+}
+
 void printerror( int status)
 {
     /*****************************************************/
@@ -2027,6 +2243,7 @@ void printerror( int status)
     /*****************************************************/
 	if (status)
 	{
+		move(30,0);printw("cfitsio error %d", status);		
 		fits_report_error(stderr, status); /* print error report */
 		exit( status );    /* terminate the program, returning error status */
 	}
@@ -2064,4 +2281,9 @@ bool is_double(string str)
 		it++;
 	}
 	return !str.empty() && it == str.end() && dotCount <= 1;
+}
+
+int intCompare(const void * a, const void * b)
+{
+	return ( *(int*)a - *(int*)b );
 }
