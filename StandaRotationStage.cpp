@@ -184,7 +184,7 @@ int StandaRotationStage::startContiniousMotion()
 
 int StandaRotationStage::stopContiniousMotion()
 {
-	if ((result = command_stop( device )) != result_ok)
+	if ((result = command_sstp( device )) != result_ok)
 		cout << "error command move " << error_string( result ) << endl;
 	return 1;
 }
