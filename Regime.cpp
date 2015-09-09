@@ -29,6 +29,7 @@
 #define SUBSAT16BIT 60000
 #define IMPROCRED 10
 #define RAD 57.2957795131
+#define ADCMARGIN 0.1
 
 using namespace std;
 
@@ -56,8 +57,8 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["latitude"] = 0.0; // latitude of telescope, deg, positive is north
 	doubleParams["longitude"] = 0.0; // latitude of telescope, deg, positive is east
 	doubleParams["altitude"] = 0.0; // altitude a.s.l. of telescope, m
-	doubleParams["objectRA"] = 0.0; // deg
-	doubleParams["objectDec"] = 0.0; // deg
+	doubleParams["RA"] = 0.0; // deg
+	doubleParams["dec"] = 0.0; // deg
 	stringParams["object"] = "none"; // object name
 	stringParams["program"] = "none"; // observational program ID
 	stringParams["author"] = "nobody"; // author of observational program
@@ -317,13 +318,11 @@ int Regime::procCommand(string command)
 	{
 		if ( tokens.size() == 2) 
 		{
-			cout << tokens[1] << endl;
 			if ( is_double(tokens[1]) )
 			{
 				double value;
 				istringstream ( tokens[1] ) >> value;
 				doubleParams[tokens[0]] = value;
-				cout << value << endl;
 				active = FALSE;
 			}
 			else if ( doubleParamsValues[tokens[0]].count(tokens[1]) > 0 )
@@ -331,14 +330,14 @@ int Regime::procCommand(string command)
 				doubleParams[tokens[0]] = doubleParamsValues[tokens[0]][tokens[1]];
 				active = FALSE;
 			} 
-			else if ( tokens[0].compare("objectRA") == 0 )
+			else if ( tokens[0].compare("RA") == 0 )
 			{
-				doubleParams["objectRA"] = RAstringToDouble(tokens[1]);
+				doubleParams["RA"] = RAstringToDouble(tokens[1]);
 				active = FALSE;
 			}
-			else if ( tokens[0].compare("objectDec") == 0 )
+			else if ( tokens[0].compare("dec") == 0 )
 			{
-				doubleParams["objectDec"] = DecstringToDouble(tokens[1]);
+				doubleParams["dec"] = DecstringToDouble(tokens[1]);
 				active = FALSE;
 			}
 			else
@@ -473,9 +472,9 @@ void Regime::printRegimeBlock(string name, int vshift)
 	move(line,col1val); printw("%s",stringParams["program"].substr(0,16).c_str());line++;
 	move(line,col1name);printw("author");
 	move(line,col1val); printw("%s",stringParams["author"].substr(0,16).c_str());line++;
-	move(line,col1name);printw("objectRA");
-	move(line,col1val); printw("%.4f d",doubleParams["ra"]);line++;
-	move(line,col1name);printw("objectDec");
+	move(line,col1name);printw("RA");
+	move(line,col1val); printw("%.4f d",doubleParams["RA"]);line++;
+	move(line,col1name);printw("dec");
 	move(line,col1val); printw("%+.4f d",doubleParams["dec"]);line++;
 	line++;
 	string shutterString;
@@ -665,13 +664,13 @@ int Regime::validate()
 		return 0;
 	}
 
-	if (( doubleParams["objectDec"] < -90.0 ) || ( doubleParams["objectDec"] > 90.0 ))
+	if (( doubleParams["dec"] < -90.0 ) || ( doubleParams["dec"] > 90.0 ))
 	{
 		cout << "object declination validation failed" << endl;
 		return 0;
 	}
 
-	if (( doubleParams["objectRA"] < 0.0 ) || ( doubleParams["objectRA"] > 360.0 ))
+	if (( doubleParams["RA"] < 0.0 ) || ( doubleParams["RA"] > 360.0 ))
 	{
 		cout << "object right ascension validation failed" << endl;
 	}
@@ -1020,8 +1019,8 @@ void Regime::commandHintsFill()
 	commandHints["latitude"] = "latitude of telescope, deg, positive is north";
 	commandHints["longitude"] = "longitude of telescope, deg, positive is east";
 	commandHints["altitude"] = "altitude a.s.l. of telescope, m";
-	commandHints["objectRA"] = "object right ascension, deg. Also HH:MM:SS format allowable.";
-	commandHints["objectDec"] = "object declination, deg. Also +dd:mm:ss format allowable.";
+	commandHints["RA"] = "object right ascension, deg. Also HH:MM:SS format allowable.";
+	commandHints["dec"] = "object declination, deg. Also +dd:mm:ss format allowable.";
 	commandHints["object"] = "object name";
 	commandHints["program"] = "observational program ID";
 	commandHints["author"] = "author of observational program";
@@ -1081,6 +1080,12 @@ void Regime::commandHintsFill()
 	commandHints["filterIntercept"]= "engine position when P.A. is zero (steps): > 0.0";
 	commandHints["filterSlope"]    = "degrees per engine step: > 0.0";
 	commandHints["filterSpeed"]    = "engine speed, (degrees per second)";
+	
+	commandHints["filter0ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter1ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter2ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter3ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter4ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
 	
 	commandHints["winLeft"]  = "window (star parameter determination) left side: 1-512";
 	commandHints["winRight"] = "window (star parameter determination) right side: 1-512";
@@ -1594,10 +1599,26 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //					HWPisMovingPrev = HWPisMoving;
 			}
 		}
+
+		double tmpAngle1,tmpAngle2;
+		calculateADC(&tmpAngle1,&tmpAngle2);
 		
-		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
-		move(25,0);
-		printw("prism1:%lf prism2:%lf",ADCprismAngle1,ADCprismAngle2);
+		if ( fabs( tmpAngle1 - ADCprismAngle1 ) > ADCMARGIN )
+		{
+			ADCprismAngle1 = tmpAngle1;
+//			move(27,0);
+//			printw("new prism1 angle: %f",ADCprismAngle1);
+		}
+		
+		if ( fabs( tmpAngle2 - ADCprismAngle2 ) > ADCMARGIN )
+		{
+			ADCprismAngle2 = tmpAngle2;
+//			move(28,0);
+//			printw("new prism2 angle: %f",ADCprismAngle2);
+		}
+
+		
+//		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
 	}
 	
 	werase(stdscr);
@@ -1982,11 +2003,11 @@ void Regime::augmentPrimaryHDU()
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "USERTXT2", card, & status);
 	
-	sprintf(newcard,"RA = %.4f",doubleParams["objectRA"]);
+	sprintf(newcard,"RA = %.4f",doubleParams["RA"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "USERTXT3", card, & status);
 
-	sprintf(newcard,"DEC = %.4f",doubleParams["objectDec"]);
+	sprintf(newcard,"DEC = %.4f",doubleParams["dec"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "USERTXT4", card, & status);
 	
@@ -2109,8 +2130,8 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 	observer.lng = doubleParams["longitude"];
 	observer.lat = doubleParams["latitude"];
 	
-	object.ra = doubleParams["objectRA"];
-	object.dec = doubleParams["objectDec"];
+	object.ra = doubleParams["RA"];
+	object.dec = doubleParams["dec"];
 	
 	double JD = ln_get_julian_from_sys();
 	
@@ -2142,7 +2163,8 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 	
 	*_angle1 = angle1;
 	*_angle2 = angle2;
-	
+//	move(25,0);printw("an1:%f, an2%f",angle1,angle2);
+//	move(26,0);printw("JD:%7.8f, %f",JD,zen);
 }
 
 void doFits(int nx, int ny, char* filename,at_32 *data)
@@ -2340,7 +2362,7 @@ void getTokens(string input, char delim, vector<string> *tokens)
 bool is_integer(string str)
 {
 	string::iterator it = str.begin();
-	if ((!isdigit(*it))&&(*it=='-')) it++; // skip minus if any
+	if ((!isdigit(*it))&&((*it=='-')||(*it=='+'))) it++; // skip minus if any
 	while (it != str.end() && std::isdigit(*it)) ++it;
 	return !str.empty() && it == str.end();
 }
@@ -2349,7 +2371,7 @@ bool is_double(string str)
 {
 	int dotCount = 0;
 	string::iterator it = str.begin();
-	if ((!isdigit(*it))&&(*it=='-')) it++; // skip minus if any
+	if ((!isdigit(*it))&&((*it=='-')||(*it=='+'))) it++; // skip minus if any
 	while (it != str.end())
 	{
 		if ( *it=='.' )
@@ -2416,8 +2438,8 @@ double DecstringToDouble(string inputstring)
 			istringstream ( Dectokens[2] ) >> sec;
 		else
 			cout << "wrong sec format" << endl;
-		
-		if ( Dectokens[0].compare(1,1,"-") == 0 )
+
+		if ( Dectokens[0].compare(0,1,"-") == 0 )
 		{
 			dec = (double)deg - (double)min/60.0 - (double)sec/3600.0;
 		}
@@ -2427,5 +2449,6 @@ double DecstringToDouble(string inputstring)
 		} 
 	}
 	else
-		cout << "wrong dec format" << endl;
+		cout << "wrong dec format " << Dectokens[0] << endl;
+	return dec;
 }
