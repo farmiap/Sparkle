@@ -69,9 +69,12 @@ private:
 	string currentFilterName;
 	string currentFilterIdent;
 	double currentFilterLambda;
+	double currentFilterADCcoef;
 	
 	int detWidth;
 	int detHeight;
+	
+	double ADCprismAngle1,ADCprismAngle2;
 	
 	Pathes pathes;
 	map<string, long> pathesCommands;
@@ -86,6 +89,8 @@ private:
 	void printRTABlock();
 	
 	void processImage(at_32* data, at_32* data2, int width, int height, int datasize2, double* xpos, double *ypos, int* satPix, int* subsatPix, double* intensity);
+	
+	void calculateADC(double* _angle1,double* _angle2);
 	
 	void augmentPrimaryHDU();
 	void addAuxiliaryHDU();
@@ -124,5 +129,9 @@ void getTokens(string input, char delim, vector<string> *tokens);
 bool is_integer(string str);
 bool is_double(string str);
 int intCompare(const void * a, const void * b);
+
+double DecstringToDouble(string inputstring);
+double RAstringToDouble(string inputstring);
+
 
 #endif

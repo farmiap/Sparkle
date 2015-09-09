@@ -12,6 +12,9 @@
 #include <vector>
 #include <iterator>
 
+#include <libnova/transform.h>
+#include <libnova/julian_day.h>
+#include <libnova/utility.h>
 
 #include "Regime.h"
 #include "ImageAverager.h"
@@ -25,6 +28,7 @@
 #define SAT16BIT 65000
 #define SUBSAT16BIT 60000
 #define IMPROCRED 10
+#define RAD 57.2957795131
 
 using namespace std;
 
@@ -192,6 +196,12 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["winBottom"] = 1;
 	intParams["winTop"] = 512;
 	
+	doubleParams["filter0ADCcoef"] = 0.0;
+	doubleParams["filter1ADCcoef"] = 0.0;
+	doubleParams["filter2ADCcoef"] = 0.0;
+	doubleParams["filter3ADCcoef"] = 0.0;
+	doubleParams["filter4ADCcoef"] = 0.0;
+	
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
 	stringParams["prtaname"] = "";
@@ -209,6 +219,9 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 
 	commandHintsFill();
 
+	ADCprismAngle1 = -1.0;
+	ADCprismAngle2 = -1.0;
+	
 	struct timezone tz;
 	gettimeofday(&prevRTATime,&tz);
 	
@@ -304,11 +317,13 @@ int Regime::procCommand(string command)
 	{
 		if ( tokens.size() == 2) 
 		{
+			cout << tokens[1] << endl;
 			if ( is_double(tokens[1]) )
 			{
 				double value;
 				istringstream ( tokens[1] ) >> value;
 				doubleParams[tokens[0]] = value;
+				cout << value << endl;
 				active = FALSE;
 			}
 			else if ( doubleParamsValues[tokens[0]].count(tokens[1]) > 0 )
@@ -316,7 +331,17 @@ int Regime::procCommand(string command)
 				doubleParams[tokens[0]] = doubleParamsValues[tokens[0]][tokens[1]];
 				active = FALSE;
 			} 
-			else 
+			else if ( tokens[0].compare("objectRA") == 0 )
+			{
+				doubleParams["objectRA"] = RAstringToDouble(tokens[1]);
+				active = FALSE;
+			}
+			else if ( tokens[0].compare("objectDec") == 0 )
+			{
+				doubleParams["objectDec"] = DecstringToDouble(tokens[1]);
+				active = FALSE;
+			}
+			else
 			{
 				cout << "alias " << tokens[1] << " for parameter " << tokens[0] << " not found" << endl;
 			}
@@ -980,7 +1005,11 @@ int Regime::validate()
 	oss << "filter" << filtNum << "Lambda";
 	currentFilterLambda = doubleParams[oss.str()];
 	oss.str("");
-		
+
+	oss << "filter" << filtNum << "ADCcoef";
+	currentFilterADCcoef = doubleParams[oss.str()];
+	oss.str("");
+	
 	cout << "validation successful" << endl;
 
 	return 1;
@@ -991,8 +1020,8 @@ void Regime::commandHintsFill()
 	commandHints["latitude"] = "latitude of telescope, deg, positive is north";
 	commandHints["longitude"] = "longitude of telescope, deg, positive is east";
 	commandHints["altitude"] = "altitude a.s.l. of telescope, m";
-	commandHints["objectRA"] = "object right ascension, deg";
-	commandHints["objectDec"] = "object declinatio, deg";
+	commandHints["objectRA"] = "object right ascension, deg. Also HH:MM:SS format allowable.";
+	commandHints["objectDec"] = "object declination, deg. Also +dd:mm:ss format allowable.";
 	commandHints["object"] = "object name";
 	commandHints["program"] = "observational program ID";
 	commandHints["author"] = "author of observational program";
@@ -1565,6 +1594,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //					HWPisMovingPrev = HWPisMoving;
 			}
 		}
+		
+		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
+		move(25,0);
+		printw("prism1:%lf prism2:%lf",ADCprismAngle1,ADCprismAngle2);
 	}
 	
 	werase(stdscr);
@@ -2067,6 +2100,51 @@ void Regime::addAuxiliaryHDU()
 	
 }
 
+void Regime::calculateADC(double *_angle1, double *_angle2)
+{
+	struct ln_lnlat_posn observer;
+	struct ln_equ_posn object;
+	struct ln_hrz_posn hrz;
+	
+	observer.lng = doubleParams["longitude"];
+	observer.lat = doubleParams["latitude"];
+	
+	object.ra = doubleParams["objectRA"];
+	object.dec = doubleParams["objectDec"];
+	
+	double JD = ln_get_julian_from_sys();
+	
+	ln_get_hrz_from_equ(&object, &observer, JD, &hrz);
+	
+	double zen = (90-hrz.alt);
+	
+	double gamma = currentFilterADCcoef*tan(zen/RAD);
+	 
+	double deltaChi;
+	
+	if (gamma<1)
+	{
+		deltaChi = asin(gamma)*RAD;
+	}
+		
+	double angle1 = zen - 90.0 + deltaChi;
+	double angle2 = zen + 90.0 - deltaChi;
+
+	while ( angle1 > 360.0 )
+		angle1 -= 360.0;
+	while ( angle1 < 0.0 )
+		angle1 += 360.0;
+
+	while ( angle2 > 360.0 )
+		angle2 -= 360.0;
+	while ( angle2 < 0.0 )
+		angle2 += 360.0;
+	
+	*_angle1 = angle1;
+	*_angle2 = angle2;
+	
+}
+
 void doFits(int nx, int ny, char* filename,at_32 *data)
 {
 	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
@@ -2286,4 +2364,68 @@ bool is_double(string str)
 int intCompare(const void * a, const void * b)
 {
 	return ( *(int*)a - *(int*)b );
+}
+
+double RAstringToDouble(string inputstring)
+{
+	double RA;
+	vector<string> RAtokens;
+	getTokens(inputstring, ':', &RAtokens);
+	if ( RAtokens.size() == 3 )
+	{
+		int hour,min,sec;
+		if ( is_integer( RAtokens[0] ) )
+			istringstream ( RAtokens[0] ) >> hour;
+		else
+			cout << "wrong hour format" << endl;
+		if ( is_integer( RAtokens[1] ) )
+			istringstream ( RAtokens[1] ) >> min;
+		else
+			cout << "wrong min format" << endl;
+		if ( is_integer( RAtokens[2] ) )
+			istringstream ( RAtokens[2] ) >> sec;
+		else
+			cout << "wrong sec format" << endl;
+		RA = 15.0*(double)hour + 0.25*(double)min + 0.25*(double)sec/60.0;
+	}
+	else
+	{
+		cout << "wrong RA format" << endl;
+		RA = -1;
+	}
+	return RA;
+}
+
+double DecstringToDouble(string inputstring)
+{
+	double dec;
+	vector<string> Dectokens;
+	getTokens(inputstring, ':', &Dectokens);
+	if ( Dectokens.size() == 3 )
+	{
+		int deg,min,sec;
+		if ( is_integer( Dectokens[0] ) )
+			istringstream ( Dectokens[0] ) >> deg;
+		else
+			cout << "wrong deg format" << endl;
+		if ( is_integer( Dectokens[1] ) )
+			istringstream ( Dectokens[1] ) >> min;
+		else
+			cout << "wrong min format" << endl;
+		if ( is_integer( Dectokens[2] ) )
+			istringstream ( Dectokens[2] ) >> sec;
+		else
+			cout << "wrong sec format" << endl;
+		
+		if ( Dectokens[0].compare(1,1,"-") == 0 )
+		{
+			dec = (double)deg - (double)min/60.0 - (double)sec/3600.0;
+		}
+		else
+		{
+			dec = (double)deg + (double)min/60.0 + (double)sec/3600.0;
+		} 
+	}
+	else
+		cout << "wrong dec format" << endl;
 }
