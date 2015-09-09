@@ -202,6 +202,9 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["filter2ADCcoef"] = 0.0;
 	doubleParams["filter3ADCcoef"] = 0.0;
 	doubleParams["filter4ADCcoef"] = 0.0;
+	doubleParams["filter5ADCcoef"] = 0.0;
+	doubleParams["filter6ADCcoef"] = 0.0;
+	doubleParams["filter7ADCcoef"] = 0.0;
 	
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
@@ -971,7 +974,12 @@ int Regime::validate()
 		return 0;
 	}
 
-
+	if ( stringParams["focusStation"].compare("N2") )
+	{
+		cout << "Only N2 station is available at the moment" << endl;
+		return 0;
+	}
+	
 	int filtNum = -1;
 	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
 		if ( it->second == stringParams["filter"] )
@@ -1086,6 +1094,9 @@ void Regime::commandHintsFill()
 	commandHints["filter2ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
 	commandHints["filter3ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
 	commandHints["filter4ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter5ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter6ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
+	commandHints["filter7ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
 	
 	commandHints["winLeft"]  = "window (star parameter determination) left side: 1-512";
 	commandHints["winRight"] = "window (star parameter determination) right side: 1-512";
@@ -2147,10 +2158,16 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 	{
 		deltaChi = asin(gamma)*RAD;
 	}
-		
-	double angle1 = zen - 90.0 + deltaChi;
-	double angle2 = zen + 90.0 - deltaChi;
-
+	
+	double angle1 = -1.0;
+	double angle2 = -1.0;
+	
+	if ( stringParams["focusStation"].compare("N2") == 0 )
+	{
+		angle1 = zen - 90.0 + deltaChi;
+		angle2 = zen + 90.0 - deltaChi;
+	}
+	
 	while ( angle1 > 360.0 )
 		angle1 -= 360.0;
 	while ( angle1 < 0.0 )

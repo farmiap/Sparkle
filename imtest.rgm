@@ -50,7 +50,7 @@ altitude 2100.000000
 aperture 2.500000
 dec 0.000000
 exp 0.100000
-filter0ADCcoef 0.000000
+filter0ADCcoef 0.157000
 filter0Lambda 500.000000
 filter0Pos 0.000000
 filter1ADCcoef 0.130000
@@ -65,10 +65,13 @@ filter3Pos 135.000000
 filter4ADCcoef 0.251000
 filter4Lambda 822.050000
 filter4Pos 180.000000
+filter5ADCcoef 0.150000
 filter5Lambda 500.000000
 filter5Pos 225.000000
+filter6ADCcoef 0.160000
 filter6Lambda 550.000000
 filter6Pos 270.000000
+filter7ADCcoef 0.177000
 filter7Lambda 625.000000
 filter7Pos 315.000000
 filterIntercept 0.000000
