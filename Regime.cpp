@@ -37,18 +37,22 @@ Regime::Regime()
 {
 }
 
-Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor)
+Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,int _withADCMotor1,int _withADCMotor2,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor,StandaRotationStage *_ADCMotor1,StandaRotationStage *_ADCMotor2)
 {
 	withDetector = _withDetector;
 	withHWPMotor = _withHWPMotor;
 	withHWPAct = _withHWPAct;
 	withMirrorAct = _withMirrorAct;
 	withFilterMotor = _withFilterMotor;
+	withADCMotor1 = _withADCMotor1;
+	withADCMotor2 = _withADCMotor2;
 	
 	HWPMotor = _HWPMotor;
 	HWPActuator = _HWPActuator;
 	mirrorActuator = _mirrorActuator;
 	filterMotor = _filterMotor;
+	ADCMotor1 = _ADCMotor1;
+	ADCMotor2 = _ADCMotor2;
 	
 //	doubleParams["platePA"] = 0.0; // P.A. of hor+ direction relatively to camera enclosure (for ADC)
 //	intParams["plateMirror"] 0; // is image mirrored? (for ADC)
@@ -196,6 +200,24 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["winRight"] = 512;
 	intParams["winBottom"] = 1;
 	intParams["winTop"] = 512;
+	
+	intParams["ADCMode"] = 0; 
+	intParamsValues["ADCMode"]["off"] = 0;
+	intParamsValues["ADCMode"]["on"]  = 1;
+	stringParams["ADCMotor1Device"] = ""; 
+	doubleParams["ADCMotor1Slope"] = 0.0; // degrees per engine step
+	doubleParams["ADCMotor1Intercept"] = 0.0; 
+	intParams["ADCMotor1Dir"] = 1; // HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
+	intParamsValues["ADCMotor1Dir"]["cw"] = 0;
+	intParamsValues["ADCMotor1Dir"]["ccw"] = 1;
+	doubleParams["ADCMotor1Speed"] = 30.0; // speed (degrees per second)
+	stringParams["ADCMotor2Device"] = ""; 
+	doubleParams["ADCMotor2Slope"] = 0.0; // degrees per engine step
+	doubleParams["ADCMotor2Intercept"] = 0.0; 
+	intParams["ADCMotor2Dir"] = 1; // HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
+	intParamsValues["ADCMotor2Dir"]["cw"] = 0;
+	intParamsValues["ADCMotor2Dir"]["ccw"] = 1;
+	doubleParams["ADCMotor2Speed"] = 30.0; // speed (degrees per second)
 	
 	doubleParams["filter0ADCcoef"] = 0.0;
 	doubleParams["filter1ADCcoef"] = 0.0;
@@ -974,6 +996,18 @@ int Regime::validate()
 		return 0;
 	}
 
+	if ( doubleParams["ADCMotor1Speed"] > 30.0 )
+	{
+		cout << "ADC motor 1 speed is too high, validation failed" << endl;
+		return 0;
+	}
+
+	if ( doubleParams["ADCMotor2Speed"] > 30.0 )
+	{
+		cout << "ADC motor 2 speed is too high, validation failed" << endl;
+		return 0;
+	}
+	
 	if ( stringParams["focusStation"].compare("N2") )
 	{
 		cout << "Only N2 station is available at the moment" << endl;
@@ -1084,10 +1118,21 @@ void Regime::commandHintsFill()
 	commandHints["light"] = "Calibration light should be off - 0 or on - 1";
 	
 	commandHints["filter"]   = "Desired filter short name. E.g. B, or V, or R, or I. Configurable.";
-	commandHints["filterMotorDevice"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
+	commandHints["filterDevice"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["filterIntercept"]= "engine position when P.A. is zero (steps): > 0.0";
 	commandHints["filterSlope"]    = "degrees per engine step: > 0.0";
 	commandHints["filterSpeed"]    = "engine speed, (degrees per second)";
+
+	commandHints["ADCMotor1Device"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
+	commandHints["ADCMotor1Intercept"]= "engine position when P.A. is zero (steps): > 0.0";
+	commandHints["ADCMotor1Dir"]= "Rotation direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["ADCMotor1Slope"]    = "degrees per engine step: > 0.0";
+	commandHints["ADCMotor1Speed"]    = "engine speed, (degrees per second)";
+	commandHints["ADCMotor2Device"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
+	commandHints["ADCMotor2Intercept"]= "engine position when P.A. is zero (steps): > 0.0";
+	commandHints["ADCMotor2Dir"]= "Rotation direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["ADCMotor2Slope"]    = "degrees per engine step: > 0.0";
+	commandHints["ADCMotor2Speed"]    = "engine speed, (degrees per second)";
 	
 	commandHints["filter0ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
 	commandHints["filter1ADCcoef"] = "Control coefficient for ADC, see ADCreport.pdf";
@@ -1252,7 +1297,7 @@ int Regime::apply()
 	
 	if ( withFilterMotor )
 	{
-		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDirInv"],doubleParams["filterSpeed"]);
+		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDir"],doubleParams["filterSpeed"]);
 		
 		filterMotor->startMoveToAngle(currentFilterPos);
 		
@@ -1265,7 +1310,41 @@ int Regime::apply()
 			usleep(100000);
 		}
 	}
+
+	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
+	{
+		int ADCMotor1RotationStatus = 0;
+		int ADCMotor2RotationStatus = 0;
 		
+		ADCMotor1RotationStatus = ADCMotor1->initializeStage(stringParams["ADCMotor1Device"],doubleParams["ADCMotor1Slope"],doubleParams["ADCMotor1Intercept"],intParams["ADCMotor1Dir"],doubleParams["ADCMotor1Speed"]);
+		
+		ADCMotor2RotationStatus = ADCMotor2->initializeStage(stringParams["ADCMotor2Device"],doubleParams["ADCMotor2Slope"],doubleParams["ADCMotor2Intercept"],intParams["ADCMotor2Dir"],doubleParams["ADCMotor2Speed"]);
+
+		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
+		
+		ADCMotor1->startMoveToAngle(ADCprismAngle1);
+		
+		usleep(500000);
+		int isMovingFlag=1;
+		double currentAngle;
+		while (isMovingFlag)
+		{
+			ADCMotor1->getAngle(&isMovingFlag,&currentAngle);
+			usleep(100000);
+		}
+
+		ADCMotor2->startMoveToAngle(ADCprismAngle2);
+		
+		usleep(500000);
+		isMovingFlag=1;
+		while (isMovingFlag)
+		{
+			ADCMotor2->getAngle(&isMovingFlag,&currentAngle);
+			usleep(100000);
+		}
+	}
+
+	
 	return HWPRotationStatus;
 }
 
@@ -1375,6 +1454,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		cout << "done" << endl;
 	}
 
+	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
+	{
+		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
+		ADCMotor1->startMoveToAngle(ADCprismAngle1);
+		ADCMotor2->startMoveToAngle(ADCprismAngle2);
+	}
+	
 	if (withDetector)
 	{
 		if ( status == DRV_SUCCESS ) status = SetAcquisitionMode(5); // run till abort
@@ -1611,25 +1697,23 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 		}
 
-		double tmpAngle1,tmpAngle2;
-		calculateADC(&tmpAngle1,&tmpAngle2);
-		
-		if ( fabs( tmpAngle1 - ADCprismAngle1 ) > ADCMARGIN )
+		if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
 		{
-			ADCprismAngle1 = tmpAngle1;
-//			move(27,0);
-//			printw("new prism1 angle: %f",ADCprismAngle1);
+			double tmpAngle1,tmpAngle2;
+			calculateADC(&tmpAngle1,&tmpAngle2);
+			
+			if ( fabs( tmpAngle1 - ADCprismAngle1 ) > ADCMARGIN )
+			{
+				ADCprismAngle1 = tmpAngle1;
+				ADCMotor1->startMoveToAngle(ADCprismAngle1);
+			}
+			
+			if ( fabs( tmpAngle2 - ADCprismAngle2 ) > ADCMARGIN )
+			{
+				ADCprismAngle2 = tmpAngle2;
+				ADCMotor2->startMoveToAngle(ADCprismAngle2);
+			}
 		}
-		
-		if ( fabs( tmpAngle2 - ADCprismAngle2 ) > ADCMARGIN )
-		{
-			ADCprismAngle2 = tmpAngle2;
-//			move(28,0);
-//			printw("new prism2 angle: %f",ADCprismAngle2);
-		}
-
-		
-//		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
 	}
 	
 	werase(stdscr);

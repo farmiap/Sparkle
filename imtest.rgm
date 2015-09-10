@@ -112,3 +112,14 @@ object none
 program none
 prtaname rta
 telescope 2.5m
+ADCMode 0
+ADCMotor1Device /dev/ximc/00000000
+ADCMotor1Slope 0.015
+ADCMotor1Speed 30.000000
+ADCMotor1Intercept 0
+ADCMotor1Dir 1
+ADCMotor2Device /dev/ximc/00000000
+ADCMotor2Slope 0.015
+ADCMotor2Speed 30.000000
+ADCMotor2Intercept 0
+ADCMotor2Dir 1

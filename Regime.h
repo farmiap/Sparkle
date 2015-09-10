@@ -57,6 +57,8 @@ private:
 	int withHWPAct;
 	int withMirrorAct;
 	int withFilterMotor;
+	int withADCMotor1;
+	int withADCMotor2;
 	
 	int HWPBand;
 	
@@ -64,6 +66,8 @@ private:
 	StandaActuator *HWPActuator;
 	StandaActuator *mirrorActuator;
 	StandaRotationStage *filterMotor;
+	StandaRotationStage *ADCMotor1;
+	StandaRotationStage *ADCMotor2;
 	
 	double currentFilterPos;
 	string currentFilterName;
@@ -111,7 +115,7 @@ public:
 	int saveToFile(string path,string name);
 
 	Regime();
-	Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,StandaRotationStage *_HWPMotor, StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor);
+	Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,int _withADCMotor1,int _withADCMotor2,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor,StandaRotationStage *_ADCMotor1,StandaRotationStage *_ADCMotor2);
 	~Regime();
 };
 
