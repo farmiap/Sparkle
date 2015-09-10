@@ -1,5 +1,8 @@
 #include "StandaRotationStage.h"
 #include <math.h>
+#include <unistd.h>
+
+#define ANGLEMARGIN 0.5
 
 using namespace std;
 
@@ -189,6 +192,20 @@ int StandaRotationStage::stopContiniousMotion()
 	return 1;
 }
 
+int StandaRotationStage::startMoveToAngleWait(double targetAngle)
+{
+	startMoveToAngle(targetAngle);
+		
+	int isMovingFlag=1;
+	double currentAngle=-999999999.9;
+	usleep(500000);
+	while ( isMovingFlag || ( fabs(currentAngle-targetAngle) > ANGLEMARGIN ) )
+	{
+		getAngle(&isMovingFlag,&currentAngle);
+		usleep(100000);
+	}
+}
+	
 int StandaRotationStage::startMoveToAngle(double targetAngle)
 {
 	if ( directionInverted )

@@ -1,6 +1,9 @@
 #include "StandaActuator.h"
 #include "StandaRotationStage.h"
 #include <math.h>
+#include <unistd.h>
+
+#define POSITIONMARGIN 50
 
 using namespace std;
 
@@ -108,6 +111,19 @@ int StandaActuator::initializeActuator(string _deviceName, double _speed)
 }
 
 
+int StandaActuator::startMoveToPositionWait(int targetPosition)
+{
+	startMoveToPosition(targetPosition);
+		
+	int isMovingFlag=1;
+	int currentPosition=-1000000000;
+	usleep(500000);
+	while ( isMovingFlag || ( fabs(currentPosition-targetPosition) > POSITIONMARGIN ) )
+	{
+		getPosition(&isMovingFlag,&currentPosition);
+		usleep(100000);
+	}
+}
 
 int StandaActuator::startMoveToPosition(int targetPosition)
 {

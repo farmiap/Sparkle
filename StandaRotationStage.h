@@ -31,6 +31,7 @@ public:
 	int initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double speed);
 	int setSpeed(double _speed);
 	int startMoveToAngle(double deltaAngle);
+	int startMoveToAngleWait(double deltaAngle);
 	int startMoveByAngle(double deltaAngle);
 	int startContiniousMotion();
 	int stopContiniousMotion();

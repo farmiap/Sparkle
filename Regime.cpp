@@ -1265,31 +1265,22 @@ int Regime::apply()
 		switch ( intParams["mirrorMode"] )
 		{
 		case MIRROROFF:
-			mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
+			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosOff"]);
 			break;
 		case MIRRORLINPOL:
-			mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
+			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosLinpol"]);
 			break;
 		case MIRRORFINDER:
-			mirrorActuator->startMoveToPosition(intParams["mirrorPosFinder"]);
+			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosFinder"]);
 			break;
 		case MIRRORAUTO:
-			mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
+			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosOff"]);
 			break;
 		default :
 			cout << "This is not normal. Validation didn't do its work." << endl;
 			break;
 		}
-		
-		usleep(500000);
-		int isMovingFlag=1;
-		int currentPosition;
-		while (isMovingFlag)
-		{
-			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
-			usleep(100000);
-		}
-		
+
 		mirrorActuatorStatus = mirrorActuator->setLight(intParams["light"]);
 	}
 	
@@ -1299,16 +1290,7 @@ int Regime::apply()
 	{
 		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDir"],doubleParams["filterSpeed"]);
 		
-		filterMotor->startMoveToAngle(currentFilterPos);
-		
-		usleep(500000);
-		int isMovingFlag=1;
-		double currentAngle;
-		while (isMovingFlag)
-		{
-			filterMotor->getAngle(&isMovingFlag,&currentAngle);
-			usleep(100000);
-		}
+		filterMotor->startMoveToAngleWait(currentFilterPos);
 	}
 
 	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
@@ -1322,26 +1304,8 @@ int Regime::apply()
 
 		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
 		
-		ADCMotor1->startMoveToAngle(ADCprismAngle1);
-		
-		usleep(500000);
-		int isMovingFlag=1;
-		double currentAngle;
-		while (isMovingFlag)
-		{
-			ADCMotor1->getAngle(&isMovingFlag,&currentAngle);
-			usleep(100000);
-		}
-
-		ADCMotor2->startMoveToAngle(ADCprismAngle2);
-		
-		usleep(500000);
-		isMovingFlag=1;
-		while (isMovingFlag)
-		{
-			ADCMotor2->getAngle(&isMovingFlag,&currentAngle);
-			usleep(100000);
-		}
+		ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
+		ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
 	}
 
 	
@@ -1416,16 +1380,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	
 	if ( withHWPMotor && intParams["HWPMode"] )
 	{
-		HWPMotor->startMoveToAngle(doubleParams["HWPStart"]);
 		cout << "HWP reaching starting position ... " << endl;
-		msec_sleep(200.0);
-		do
-		{
-			HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
-//		cout << "is moving" << HWPisMoving << "angle" << HWPAngle << endl;
-			msec_sleep(50.0);
-		} while ( HWPisMoving );
-		msec_sleep(1000.0);
+		HWPMotor->startMoveToAngleWait(doubleParams["HWPStart"]);
 		
 		if ( intParams["HWPMode"] == 1 )
 		{
@@ -1444,21 +1400,15 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) )
 	{
 		cout << "Mirror reaching starting position ... " << endl;
-		mirrorActuator->startMoveToPosition(intParams["mirrorPosLinpol"]);
-		usleep(500000);
-		while ( isMovingFlag || ( abs(currentPosition-intParams["mirrorPosLinpol"]) > 100 ) )
-		{
-			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
-			usleep(100000);
-		}
+		mirrorActuator->startMoveToPositionWait(intParams["mirrorPosLinpol"]);
 		cout << "done" << endl;
 	}
 
 	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
 	{
 		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
-		ADCMotor1->startMoveToAngle(ADCprismAngle1);
-		ADCMotor2->startMoveToAngle(ADCprismAngle2);
+		ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
+		ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
 	}
 	
 	if (withDetector)
@@ -1725,15 +1675,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	{
 		mirrorMotion.print();
 		cout << "Mirror reaching final position ... " << endl;
-		mirrorActuator->startMoveToPosition(intParams["mirrorPosOff"]);
-		usleep(500000);
-		int isMovingFlag=1;
-		int currentPosition;
-		while (isMovingFlag || ( abs(currentPosition-intParams["mirrorPosOff"]) > 100 ) )
-		{
-			mirrorActuator->getPosition(&isMovingFlag,&currentPosition);
-			usleep(100000);
-		}
+		mirrorActuator->startMoveToPositionWait(intParams["mirrorPosOff"]);
 		cout << "Done." << endl;
 	}
 	
@@ -1894,36 +1836,20 @@ bool Regime::printTimings()
 
 int Regime::switchHWP()
 {
-	HWPMotor->startMoveToAngle(doubleParams["HWPSwitchingAngle"]);
-
 	cout << "Setting initial position ... " << endl;
-	
-	int isMovingFlag = 0;
-	double currentAngle = 0.0;
-	int currentPosition = 0;
-	while (isMovingFlag)
-	{
-		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
-		usleep(100000);
-	}
-	cout << "done." << endl;
-	usleep(500000);
 
-	HWPActuator->startMoveToPosition(intParams["HWPActuatorPushedPosition"]);
-	usleep(500000);
-	isMovingFlag = 1;
-	while (isMovingFlag)
-	{
-		HWPActuator->getPosition(&isMovingFlag,&currentPosition);
-		usleep(100000);
-	}
+	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingAngle"]);
+
+	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition"]);
+
 	cout << "done." << endl;
 	
 	cout << "Switching ... " << endl;
 
 	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
 	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion"]);
-	isMovingFlag = 1;
+	int isMovingFlag = 1;
+	double currentAngle;
 	while (isMovingFlag)
 	{
 		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
@@ -1933,14 +1859,7 @@ int Regime::switchHWP()
 	HWPMotor->setSpeed(doubleParams["HWPSpeed"]);
 	
 	cout << "Actuator push back ... " << endl;
-	HWPActuator->startMoveToPosition(0);
-	usleep(500000);
-	isMovingFlag = 1;
-	while (isMovingFlag)
-	{
-		HWPActuator->getPosition(&isMovingFlag,&currentPosition);
-		usleep(100000);
-	}
+	HWPActuator->startMoveToPositionWait(0);
 	cout << "done." << endl;
 	
 	
