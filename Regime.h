@@ -79,6 +79,7 @@ private:
 	int detHeight;
 	
 	double ADCprismAngle1,ADCprismAngle2;
+	double deroDifference; // Value dero-parallactic. It is constant during given tracking session. Used for ADC calculation.
 	
 	Pathes pathes;
 	map<string, long> pathesCommands;
@@ -95,6 +96,7 @@ private:
 	void processImage(at_32* data, at_32* data2, int width, int height, int datasize2, double* xpos, double *ypos, int* satPix, int* subsatPix, double* intensity);
 	
 	void calculateADC(double* _angle1,double* _angle2);
+	double parallacticAngle();
 	
 	void augmentPrimaryHDU();
 	void addAuxiliaryHDU();

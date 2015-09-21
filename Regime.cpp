@@ -15,6 +15,7 @@
 #include <libnova/transform.h>
 #include <libnova/julian_day.h>
 #include <libnova/utility.h>
+#include <libnova/sidereal_time.h>
 
 #include "Regime.h"
 #include "ImageAverager.h"
@@ -54,7 +55,6 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	ADCMotor1 = _ADCMotor1;
 	ADCMotor2 = _ADCMotor2;
 	
-//	doubleParams["platePA"] = 0.0; // P.A. of hor+ direction relatively to camera enclosure (for ADC)
 //	intParams["plateMirror"] 0; // is image mirrored? (for ADC)
 
 // general	
@@ -71,7 +71,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["aperture"] = 0.0; // aperture diameter of the telescope, m
 	doubleParams["secondary"] = 0.0; // secondary mirror shadow diameter, m
 	stringParams["focusStation"] = "none"; // N1, N2, C1 etc.
-	doubleParams["platePA"] = 0.0; // P.A. of hor+ direction relatively to camera enclosure (for ADC)
+	doubleParams["referencePA"] = 0.0; // for definition see ADCreport.pdf
 	intParams["plateMirror"] = 0; // is image mirrored? (for ADC)
 	
 // detector
@@ -159,9 +159,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["filterDevice"] = ""; 
 	doubleParams["filterSlope"] = 0.0; // degrees per engine step
 	doubleParams["filterIntercept"] = 0.0; 
-	intParams["filterDir"] = 1; // HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
-	intParamsValues["filterDir"]["cw"] = 0;
-	intParamsValues["filterDir"]["ccw"] = 1;
+	intParams["filterDir"] = 1; // Switch rotation direction, positive should be CCW seeing from detector to telescope. Check by eye.
 	doubleParams["filterSpeed"] = 30.0; // speed (degrees per second)
 	doubleParams["filter0Pos"] = 0.0; // positions of filter wheel corresponding to different filters
 	doubleParams["filter1Pos"] = 0.0;
@@ -207,17 +205,15 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["ADCMotor1Device"] = ""; 
 	doubleParams["ADCMotor1Slope"] = 0.0; // degrees per engine step
 	doubleParams["ADCMotor1Intercept"] = 0.0; 
-	intParams["ADCMotor1Dir"] = 1; // HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
-	intParamsValues["ADCMotor1Dir"]["cw"] = 0;
-	intParamsValues["ADCMotor1Dir"]["ccw"] = 1;
+	intParams["ADCMotor1Dir"] = 1; // HWP direction of rotation with positive speed. Check by eye.
 	doubleParams["ADCMotor1Speed"] = 30.0; // speed (degrees per second)
 	stringParams["ADCMotor2Device"] = ""; 
 	doubleParams["ADCMotor2Slope"] = 0.0; // degrees per engine step
 	doubleParams["ADCMotor2Intercept"] = 0.0; 
-	intParams["ADCMotor2Dir"] = 1; // HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
-	intParamsValues["ADCMotor2Dir"]["cw"] = 0;
-	intParamsValues["ADCMotor2Dir"]["ccw"] = 1;
+	intParams["ADCMotor2Dir"] = 1; // HWP direction of rotation with positive speed. Check by eye.
 	doubleParams["ADCMotor2Speed"] = 30.0; // speed (degrees per second)
+
+	doubleParams["dero"] = 0.0;
 	
 	doubleParams["filter0ADCcoef"] = 0.0;
 	doubleParams["filter1ADCcoef"] = 0.0;
@@ -247,6 +243,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 
 	ADCprismAngle1 = -1.0;
 	ADCprismAngle2 = -1.0;
+	deroDifference = 0.0;
 	
 	struct timezone tz;
 	gettimeofday(&prevRTATime,&tz);
@@ -343,6 +340,16 @@ int Regime::procCommand(string command)
 	{
 		if ( tokens.size() == 2) 
 		{
+			if ( tokens[0].compare("dero") == 0 )
+			{
+				// Here we calculate the dero-parallactic value for a given moment. Telescope keep this value fixed during tracking.
+				// This allows to use it for dero angle calculation for any moment.
+				double deroAngle;
+				istringstream ( tokens[1] ) >> deroAngle;
+				deroDifference = deroAngle - parallacticAngle();
+			}
+			else
+			{
 			if ( is_double(tokens[1]) )
 			{
 				double value;
@@ -368,6 +375,7 @@ int Regime::procCommand(string command)
 			else
 			{
 				cout << "alias " << tokens[1] << " for parameter " << tokens[0] << " not found" << endl;
+			}
 			}
 		}	
 		else if ( commandHints.count( tokens[0] ) > 0 )
@@ -711,12 +719,6 @@ int Regime::validate()
 		return 0;
 	}
 	
-	if ((doubleParams["platePA"] < 0) || (doubleParams["platePA"] > 360))
-	{
-		cout << "plate P.A. validation failed" << endl;
-		return 0;
-	}
-	
 	if ((intParams["plateMirror"] != 0) && (intParams["plateMirror"] != 1))
 	{
 		cout << "plate mirror validation failed" << endl;
@@ -1008,9 +1010,9 @@ int Regime::validate()
 		return 0;
 	}
 	
-	if ( stringParams["focusStation"].compare("N2") )
+	if (!( !stringParams["focusStation"].compare("N2") || !stringParams["focusStation"].compare("C1") ))
 	{
-		cout << "Only N2 station is available at the moment" << endl;
+		cout << "Only N2 and C1 stations is available at the moment" << endl;
 		return 0;
 	}
 	
@@ -1071,7 +1073,7 @@ void Regime::commandHintsFill()
 	commandHints["aperture"] = "aperture diameter of the telescope, m";
 	commandHints["secondary"] = "secondary mirror shadow diameter, m";
 	commandHints["focusStation"] = "N1, N2, C1 etc.";
-	commandHints["platePA"] = "P.A. of hor+ direction relatively to camera enclosure (for ADC)";
+	commandHints["referencePA"] = "for definition see ADCreport.pdf";
 	commandHints["plateMirror"] = "is image mirrored? (for ADC)";
 	
 	commandHints["skip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
@@ -1096,7 +1098,7 @@ void Regime::commandHintsFill()
 	commandHints["exp"]     = "exposure time in seconds";
 
 	commandHints["HWPMode"]      = "0 - don't use HWP, 1 - step mode, 2 - continous rotation mode.";
-	commandHints["HWPDir"]   = "HWP positive direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["HWPDir"]   = "Switch rotation direction, positive should be CCW seeing from detector to telescope. Check by eye.";
 	commandHints["HWPDevice"]   = "HWP motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["HWPPairNum"]  = "number of pairs in group: >= 1";
 	commandHints["HWPGroupNum"] = "number of groups: >= 1";
@@ -1125,12 +1127,12 @@ void Regime::commandHintsFill()
 
 	commandHints["ADCMotor1Device"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["ADCMotor1Intercept"]= "engine position when P.A. is zero (steps): > 0.0";
-	commandHints["ADCMotor1Dir"]= "Rotation direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["ADCMotor1Dir"]= "Switch rotation direction, positive should be CCW seeing from detector to telescope. Check by eye.";
 	commandHints["ADCMotor1Slope"]    = "degrees per engine step: > 0.0";
 	commandHints["ADCMotor1Speed"]    = "engine speed, (degrees per second)";
 	commandHints["ADCMotor2Device"]   = "Filter motor device id (e.g. /dev/ximc/00000367)";
 	commandHints["ADCMotor2Intercept"]= "engine position when P.A. is zero (steps): > 0.0";
-	commandHints["ADCMotor2Dir"]= "Rotation direction. Seeing from detector to telescope: 1 - CCW, 0 - CW";
+	commandHints["ADCMotor2Dir"]= "Switch rotation direction, positive should be CCW seeing from detector to telescope. Check by eye.";
 	commandHints["ADCMotor2Slope"]    = "degrees per engine step: > 0.0";
 	commandHints["ADCMotor2Speed"]    = "engine speed, (degrees per second)";
 	
@@ -1306,6 +1308,8 @@ int Regime::apply()
 		
 		ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
 		ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
+		
+//		cout << "ADC1 angle: " << ADCprismAngle1 << " ADC2 angle: " << ADCprismAngle2 << endl;
 	}
 
 	
@@ -2073,9 +2077,9 @@ void Regime::addAuxiliaryHDU()
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "FOCUSSTA", card, & status);
 	
-	sprintf(newcard,"PLATEPA = %.2f",doubleParams["platePA"]);
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "PLATEPA", card, & status);
+//	sprintf(newcard,"PLATEPA = %.2f",doubleParams["platePA"]);
+//	fits_parse_template(newcard, card, &keytype, &status);
+//	fits_update_card(fptr, "PLATEPA", card, & status);
 	
 	sprintf(newcard,"PLATEMIR = %d",intParams["plateMirror"]);
 	fits_parse_template(newcard, card, &keytype, &status);
@@ -2167,10 +2171,16 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 	
 	if ( stringParams["focusStation"].compare("N2") == 0 )
 	{
-		angle1 = zen - 90.0 + deltaChi;
-		angle2 = zen + 90.0 - deltaChi;
+		angle1 = doubleParams["referencePA"] + zen - 90.0 + deltaChi;
+		angle2 = doubleParams["referencePA"] + zen + 90.0 - deltaChi;
+	} 
+	else if ( stringParams["focusStation"].compare("C1") == 0 )
+	{
+		double currentDero = deroDifference + parallacticAngle();
+		angle1 = doubleParams["referencePA"] + currentDero - 90.0 + deltaChi;
+		angle2 = doubleParams["referencePA"] + currentDero + 90.0 - deltaChi;
 	}
-	
+		
 	while ( angle1 > 360.0 )
 		angle1 -= 360.0;
 	while ( angle1 < 0.0 )
@@ -2186,6 +2196,34 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 //	move(25,0);printw("an1:%f, an2%f",angle1,angle2);
 //	move(26,0);printw("JD:%7.8f, %f",JD,zen);
 }
+
+double Regime::parallacticAngle()
+{
+	struct ln_lnlat_posn observer;
+	struct ln_equ_posn object;
+	struct ln_hrz_posn hrz;
+	
+	observer.lng = doubleParams["longitude"];
+	observer.lat = doubleParams["latitude"];
+	
+	object.ra = doubleParams["RA"];
+	object.dec = doubleParams["dec"];
+	
+	double JD = ln_get_julian_from_sys();
+	double sidTime = ln_get_apparent_sidereal_time(JD)*15.0+observer.lng;
+	
+	double hourAngle = sidTime - object.ra;
+	
+	ln_get_hrz_from_equ(&object, &observer, JD, &hrz);
+	
+	double sinp = cos(observer.lat/RAD)*sin(hrz.az/RAD)/cos(object.dec/RAD);
+	double cosp = cos(hrz.az/RAD)*cos(hourAngle/RAD) + sin(hrz.az/RAD)*sin(hourAngle/RAD)*cos(observer.lat/RAD);
+	
+	double parAngle = atan2(sinp,cosp)*RAD;
+	
+	return parAngle;
+}
+
 
 void doFits(int nx, int ny, char* filename,at_32 *data)
 {
