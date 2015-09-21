@@ -1465,6 +1465,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int mirrorStatus = 0;
 	int imageGot = 0;
 	
+	int frameCounterDiv = 0;
+	int frameCounterDivPrev = -1;
+	
 	MirrorMotionRTA mirrorMotion(mirrorActuator,intParams["mirrorPosOff"],intParams["mirrorPosLinpol"],doubleParams["mirrorBeamTime"]);
 	
 	while ( 1 ) {
@@ -1588,7 +1591,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 					linenum++;
 				}
 			}
-			if ( frameCounter%intParams["skip"] == 0)
+			frameCounterDiv = floor((double)frameCounter/(double)intParams["skip"]);
+			if ( frameCounterDiv > frameCounterDivPrev)
 			{
 				struct timeval currRTATime;
 				struct timezone tz;
@@ -1618,6 +1622,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				*/
 //				printw(" frame no.: %d %f",frameCounter,deltaTime);
 			}
+			frameCounterDivPrev = frameCounterDiv;
 			if ( intParams["HWPMode"] == 2 )
 			{
 				// do not poll detector too frequently. During continious motion of HWP it is not needed

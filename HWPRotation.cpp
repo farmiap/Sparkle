@@ -303,8 +303,6 @@ void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1d
 //	for( ii=1; ii<naxes[1]; ii++ )
 //		array[ii] = array[ii-1] + naxes[0];
 
-	remove(filename);               /* Delete old file if it already exists */
-
 	status = 0;         /* initialize status before calling fitsio routines */
 
 	struct stat  buffer;	
