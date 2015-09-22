@@ -2108,26 +2108,37 @@ void Regime::addAuxiliaryHDU()
 	fits_update_card(fptr, "HWPBAND", card, & status);
 
 	double RONSigma[3];
+	double sensitiv[3];
 	if (intParams["adc"] == 0) // 14-bit
 		if (intParams["ampl"] == 0) // EM amplifier
 			if      (intParams["horSpeed"] == 0)
-			{RONSigma[0] = 93.33; RONSigma[1] = 58.58; RONSigma[2] = 49.64;}
+			{RONSigma[0] = 93.33; RONSigma[1] = 58.58; RONSigma[2] = 49.64;
+			 sensitiv[0] = 61.00; sensitiv[1] = 25.14; sensitiv[2] = 11.57;}
 			else if (intParams["horSpeed"] == 1)
-			{RONSigma[0] = 82.54; RONSigma[1] = 50.78; RONSigma[2] = 39.48;}
+			{RONSigma[0] = 82.54; RONSigma[1] = 50.78; RONSigma[2] = 39.48;
+	 		 sensitiv[0] = 53.60; sensitiv[1] = 22.08; sensitiv[2] =  9.97;}
 			else  
-			{RONSigma[0] = 61.02; RONSigma[1] = 36.87; RONSigma[2] = 30.02;}
+			{RONSigma[0] = 61.02; RONSigma[1] = 36.87; RONSigma[2] = 30.02;
+   			 sensitiv[0] = 52.60; sensitiv[1] = 21.69; sensitiv[2] =  9.94;}
 		else // conv. amplifier
-		{RONSigma[0] = 14.37; RONSigma[1] = 10.56; RONSigma[2] = 9.64;}
+		{RONSigma[0] = 14.37; RONSigma[1] = 10.56; RONSigma[2] = 9.64;
+		 sensitiv[0] = 10.05; sensitiv[1] =  3.97; sensitiv[2] = 1.75;}
 	else // 16-bit
 		if (intParams["ampl"] == 0)
-		{RONSigma[0] = 36.24; RONSigma[1] = 22.03; RONSigma[2] = 18.56;} // EM amplifier
+		{RONSigma[0] = 36.24; RONSigma[1] = 22.03; RONSigma[2] = 18.56;
+		 sensitiv[0] = 20.83; sensitiv[1] =  8.54; sensitiv[2] =  3.89;} // EM amplifier
 		else
-		{RONSigma[0] = 8.45; RONSigma[1] = 6.7; RONSigma[2] = 6.08;} 	  // conv. amplifier
+		{RONSigma[0] = 8.45; RONSigma[1] = 6.7; RONSigma[2] = 6.08;
+		 sensitiv[0] = 3.66; sensitiv[1] = 1.47; sensitiv[2] = 0.64;} 	  // conv. amplifier
 	
 	sprintf(newcard,"RONSIGMA = %.2f",RONSigma[intParams["preamp"]]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "RONSIGMA", card, & status);
 
+	sprintf(newcard,"SENSITIV = %.2f",sensitiv[intParams["preamp"]]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "SENSITIV", card, & status);
+	
 	sprintf(newcard,"LIGHT = %d",intParams["light"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "LIGHT", card, & status);
