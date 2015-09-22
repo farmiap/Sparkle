@@ -1374,7 +1374,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int acc=0;
 	
 	double HWPAngle;
-	
+	double HWPAngleBeforeCurrentStep = 0;
+	double nextStepValue;
+
 	HWPRotationTrigger HWPTrigger;
 	HWPAngleContainer angleContainer;
 	
@@ -1497,11 +1499,14 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			if ( intParams["HWPMode"] == 1)
 			{
 				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
+				if (!anglesProximity(HWPAngleBeforeCurrentStep+nextStepValue,HWPAngle,1.0))
+					HWPisMoving = 1;
 				int currentStepNumber;
 				if ( HWPTrigger.check(&currentStepNumber) )
 				{
 					motionStarted = 1;
-					double nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
+					HWPAngleBeforeCurrentStep = HWPAngle;
+					nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
 					move(2,col3name);printw("HWP step");
 					move(2,col3val);printw("%d",currentStepNumber);
 //					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",frameCounter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
@@ -2406,6 +2411,20 @@ bool is_double(string str)
 int intCompare(const void * a, const void * b)
 {
 	return ( *(int*)a - *(int*)b );
+}
+
+int anglesProximity(double a, double b, double margin)
+{
+	
+	if (a<margin)
+	{
+		if (b>270) b -= 360;
+	}
+	if (a>360-margin)
+	{
+		if (b<90) b += 360;
+	}
+	return (int)(fabs(a-b)<margin);
 }
 
 double RAstringToDouble(string inputstring)

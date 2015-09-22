@@ -133,6 +133,7 @@ void getTokens(string input, char delim, vector<string> *tokens);
 bool is_integer(string str);
 bool is_double(string str);
 int intCompare(const void * a, const void * b);
+int anglesProximity(double a, double b, double margin);
 
 double DecstringToDouble(string inputstring);
 double RAstringToDouble(string inputstring);
