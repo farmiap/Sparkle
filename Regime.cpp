@@ -112,6 +112,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 // HWP rotation unit section
 	intParams["HWPMode"]=0;          // 0 - not to use HWP, 1 - use HWP in step mode, 2 - use in continious mode
 	intParamsValues["HWPMode"]["disable"] = 0;
+	intParamsValues["HWPMode"]["off"] = 0;
 	intParamsValues["HWPMode"]["step"] = 1;
 	intParamsValues["HWPMode"]["cont"] = 2;
 	intParams["HWPDir"]=0; 	// HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
