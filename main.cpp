@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	
 	CommandLogger commandLogger("/home/safonov/SparkleLog/");
 	
-	while ((c = getopt (argc, argv, "dmnifah")) != -1)
+	while ((c = getopt (argc, argv, "dmnifabvh")) != -1)
 		switch (c)
 		{
 		case 'd':

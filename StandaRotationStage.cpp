@@ -224,6 +224,8 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 
 	pos = pos + (int)(cycle*round((state.CurPosition - pos)/cycle));
 
+//	cout << "move to pos " << pos << " upos " << uPos << endl;
+	
 	if ((result = command_move( device, pos, uPos )) != result_ok)
 		cout << "error command move " << error_string( result ) << endl;
 	return 1;
