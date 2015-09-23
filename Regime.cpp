@@ -1714,7 +1714,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 
 	// Finally we write additional keywords into specially created empty HDU.
-	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
+	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, MIRRMODE, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
 	
 	delete data;
 	delete data2;
@@ -2102,6 +2102,15 @@ void Regime::addAuxiliaryHDU()
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "PLATEMIR", card, & status);
 
+	string mirrorModeString;
+	for(map<string, int>::iterator it = intParamsValues["mirrorMode"].begin();it != intParamsValues["mirrorMode"].end();++it)
+		if ( it->second == intParams["mirrorMode"] )
+			mirrorModeString = it->first;
+	sprintf(newcard,"MIRRMODE = %s",mirrorModeString.c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "MIRRMODE", card, & status);
+
+	
 	string ADCModeString;
 	for(map<string, int>::iterator it = intParamsValues["ADCMode"].begin();it != intParamsValues["ADCMode"].end();++it)
 		if ( it->second == intParams["ADCMode"] )
