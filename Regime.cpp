@@ -245,6 +245,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	ADCprismAngle1 = -1.0;
 	ADCprismAngle2 = -1.0;
 	deroDifference = 0.0;
+	positionAngle = 0.0;
 	
 	struct timezone tz;
 	gettimeofday(&prevRTATime,&tz);
@@ -348,6 +349,7 @@ int Regime::procCommand(string command)
 				double deroAngle;
 				istringstream ( tokens[1] ) >> deroAngle;
 				deroDifference = deroAngle - parallacticAngle();
+				positionAngle = deroAngle - parallacticAngle() + doubleParams["referencePA"];
 			}
 			else
 			{
@@ -1712,7 +1714,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 
 	// Finally we write additional keywords into specially created empty HDU.
-	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, PLATEPA, PLATEMIR, HWPMODE, HWPBAND, RONSIGMA
+	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
 	
 	delete data;
 	delete data2;
@@ -2087,14 +2089,26 @@ void Regime::addAuxiliaryHDU()
 	sprintf(newcard,"FOCUSSTA = %s",stringParams["focusStation"].c_str());
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "FOCUSSTA", card, & status);
+
+	sprintf(newcard,"REFERPA = %.2f",doubleParams["referencePA"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "REFERPA", card, & status);
 	
-//	sprintf(newcard,"PLATEPA = %.2f",doubleParams["platePA"]);
-//	fits_parse_template(newcard, card, &keytype, &status);
-//	fits_update_card(fptr, "PLATEPA", card, & status);
+	sprintf(newcard,"PLATEPA = %.2f",positionAngle); // attention: correctness of this value relies on referencePA
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "PLATEPA", card, & status);
 	
 	sprintf(newcard,"PLATEMIR = %d",intParams["plateMirror"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "PLATEMIR", card, & status);
+
+	string ADCModeString;
+	for(map<string, int>::iterator it = intParamsValues["ADCMode"].begin();it != intParamsValues["ADCMode"].end();++it)
+		if ( it->second == intParams["ADCMode"] )
+			ADCModeString = it->first;
+	sprintf(newcard,"ADCMODE = %s",ADCModeString.c_str());
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "ADCMODE", card, & status);
 	
 	string HWPModeString;
 	for(map<string, int>::iterator it = intParamsValues["HWPMode"].begin();it != intParamsValues["HWPMode"].end();++it)
