@@ -113,6 +113,12 @@ int StandaActuator::initializeActuator(string _deviceName, double _speed)
 
 int StandaActuator::startMoveToPositionWait(int targetPosition)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+	
 	startMoveToPosition(targetPosition);
 		
 	int isMovingFlag=1;
@@ -127,6 +133,11 @@ int StandaActuator::startMoveToPositionWait(int targetPosition)
 
 int StandaActuator::startMoveToPosition(int targetPosition)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
 	
 	if ((result = get_status( device, &state )) != result_ok)
 	{
@@ -141,6 +152,13 @@ int StandaActuator::startMoveToPosition(int targetPosition)
 
 int StandaActuator::getPosition(int *isMoving,int *position)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+
 	if ( (result = get_status( device, &state )) != result_ok )
 	{
 		cout << "error getting status: " << error_string( result ) << endl;
@@ -153,6 +171,13 @@ int StandaActuator::getPosition(int *isMoving,int *position)
 
 int StandaActuator::setLight(int _light)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	extio_settings_t extio_settings;
 	
 	result = get_extio_settings( device, &extio_settings);

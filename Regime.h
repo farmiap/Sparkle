@@ -129,8 +129,8 @@ public:
 	~Regime();
 };
 
+bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,int _withADCMotor1,int _withADCMotor2,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor,StandaRotationStage *_ADCMotor1,StandaRotationStage *_ADCMotor2,float startTemp);
 // detector interaction functions which don't require regime framework
-bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTemp);
 bool checkTempInside(double lowerLim, double upperLim);
 bool setTemp(double temper, bool waitForStab = true);
 

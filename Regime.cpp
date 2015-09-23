@@ -1970,7 +1970,7 @@ bool checkTempInside(double lowerLim, double upperLim)
 }
 
 
-bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTemp)
+bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,int _withADCMotor1,int _withADCMotor2,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor,StandaRotationStage *_ADCMotor1,StandaRotationStage *_ADCMotor2,float startTemp)
 {
 	int status = DRV_SUCCESS;
 	if ( _withDetector )
@@ -1985,6 +1985,35 @@ bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,float startTem
 
 		ShutDown();
 	}
+
+	cout << "Parking motors ... " << endl;
+	
+	if (_withHWPMotor) {
+		_HWPMotor->startMoveToAngleWait(0.0);
+	}
+
+	if (_withHWPAct) {
+		_HWPActuator->startMoveToPositionWait(0);
+	}
+
+	if (_withMirrorAct) {
+		_mirrorActuator->startMoveToPositionWait(0);
+	}
+
+	if (_withFilterMotor) {
+		_filterMotor->startMoveToAngleWait(0.0);
+	}
+
+	if (_withADCMotor1) {
+		_ADCMotor1->startMoveToAngleWait(0.0);
+	}
+
+	if (_withADCMotor2) {
+		_ADCMotor2->startMoveToAngleWait(0.0);
+	}
+	
+	cout << "done." << endl;
+
 	return true;
 }
 

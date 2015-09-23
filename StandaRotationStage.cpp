@@ -30,6 +30,13 @@ void StandaRotationStage::printDeviceName()
 
 int StandaRotationStage::setSpeed(double _speed)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	cout << "setting speed!" << _speed << endl;
 	if ((result = get_engine_settings( device, &engine_settings )) != result_ok)
 	{
@@ -172,6 +179,13 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 
 int StandaRotationStage::startContiniousMotion()
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	if ( directionInverted )
 	{
 		if ((result = command_left( device )) != result_ok)
@@ -187,6 +201,12 @@ int StandaRotationStage::startContiniousMotion()
 
 int StandaRotationStage::stopContiniousMotion()
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
 	if ((result = command_sstp( device )) != result_ok)
 		cout << "error command move " << error_string( result ) << endl;
 	return 1;
@@ -194,6 +214,13 @@ int StandaRotationStage::stopContiniousMotion()
 
 int StandaRotationStage::startMoveToAngleWait(double targetAngle)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	startMoveToAngle(targetAngle);
 		
 	int isMovingFlag=1;
@@ -208,6 +235,13 @@ int StandaRotationStage::startMoveToAngleWait(double targetAngle)
 	
 int StandaRotationStage::startMoveToAngle(double targetAngle)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	if ( directionInverted )
 		targetAngle = 360.0 - targetAngle;
 	
@@ -233,6 +267,13 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 
 int StandaRotationStage::startMoveByAngle(double deltaAngle)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	if ( directionInverted )
 		deltaAngle = -deltaAngle;
 	double dpos = deltaAngle/convSlope;
@@ -246,6 +287,13 @@ int StandaRotationStage::startMoveByAngle(double deltaAngle)
 
 int StandaRotationStage::getAngle(int *isMoving,double *angle)
 {
+	if (device == device_undefined)
+	{
+		cout << "no device: " << deviceName << endl;
+		return 0;
+	}
+
+	
 	if ((result = get_status( device, &state )) != result_ok)
 	{
 		cout << "error getting status: " << error_string( result ) << endl;

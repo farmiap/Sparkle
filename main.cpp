@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 		
 		if ( command.compare("exit") == 0 )
 		{
-			if ( finalize(withDetector,withHWPMotor,withHWPAct,startTemp) )
+			if ( finalize(withDetector,withHWPMotor,withHWPAct,withMirrorAct,withFilterMotor,withADCMotor1,withADCMotor2,&HWPMotor,&HWPActuator,&mirrorActuator,&filterMotor,&ADCMotor1,&ADCMotor2,startTemp) )
 					break;
 		}
 
