@@ -111,10 +111,10 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 
 // HWP rotation unit section
 	intParams["HWPMode"]=0;          // 0 - not to use HWP, 1 - use HWP in step mode, 2 - use in continious mode
-	intParamsValues["HWPMode"]["disable"] = 0;
-	intParamsValues["HWPMode"]["off"] = 0;
-	intParamsValues["HWPMode"]["step"] = 1;
-	intParamsValues["HWPMode"]["cont"] = 2;
+	intParamsValues["HWPMode"]["disable"] = HWPOFF;
+	intParamsValues["HWPMode"]["off"] = HWPOFF;
+	intParamsValues["HWPMode"]["step"] = HWPSTEP;
+	intParamsValues["HWPMode"]["cont"] = HWPCONT;
 	intParams["HWPDir"]=0; 	// HWP direction of rotation with positive speed. Seeing from detector to telescope: 1 - CCW, 0 - CW
 	intParamsValues["HWPDir"]["cw"] = 0;
 	intParamsValues["HWPDir"]["ccw"] = 1;
@@ -601,7 +601,7 @@ void Regime::printRegimeBlock(string name, int vshift)
 	move(line,col3val); printw("%d",intParams["HWPBand"]);line++;
 	move(line,col3name);printw("HWPSpeed");
 	move(line,col3val); printw("%.2f d/s",doubleParams["HWPSpeed"]);line++;
-	if ( intParams["HWPMode"] == 1 )
+	if ( intParams["HWPMode"] == HWPSTEP )
 	{
 		move(line,col3name);printw("HWPStart");
 		move(line,col3val); printw("%.2f d",doubleParams["HWPStart"]);line++;
@@ -1231,7 +1231,7 @@ int Regime::apply()
 	}
 
 	int HWPActuatorStatus = 0;
-
+	
 	if ( withHWPAct && withHWPMotor ) 
 	{
 		HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"]);
@@ -1262,6 +1262,12 @@ int Regime::apply()
 		cout << "HWP band switching is not possible, HWP actuator or/and motor is off" << endl;
 	}	
 
+	if ( withHWPMotor && (intParams["HWPMode"] == HWPOFF) )
+	{
+		HWPMotor->startMoveToAngleWait(doubleParams["HWPStart"]);
+	}
+
+	
 	int mirrorActuatorStatus = 0;
 	if ( withMirrorAct ) 
 	{
@@ -1392,7 +1398,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		cout << "HWP reaching starting position ... " << endl;
 		HWPMotor->startMoveToAngleWait(doubleParams["HWPStart"]);
 		
-		if ( intParams["HWPMode"] == 1 )
+		if ( intParams["HWPMode"] == HWPSTEP )
 		{
 			HWPTrigger.setPeriod(doubleParams["HWPPeriod"]);
 			HWPTrigger.start();
@@ -1506,7 +1512,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			break;
 		}
 		if ( withHWPMotor && intParams["HWPMode"] ) {
-			if ( intParams["HWPMode"] == 1)
+			if ( intParams["HWPMode"] == HWPSTEP)
 			{
 				HWPMotor->getAngle(&HWPisMoving,&HWPAngle);
 				if (!anglesProximity(HWPAngleBeforeCurrentStep+nextStepValue,HWPAngle,1.0))
@@ -1556,7 +1562,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //			prevExpTime = currExpTime;
 
 
-			if ( intParams["HWPMode"] == 2 )
+			if ( intParams["HWPMode"] == HWPCONT )
 			{
 				if ( (status==DRV_SUCCESS) && !imageGot ) status=GetMostRecentImage(data,datasize);
 				imageGot = 1;
@@ -1631,7 +1637,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 //				printw(" frame no.: %d %f",frameCounter,deltaTime);
 			}
 			frameCounterDivPrev = frameCounterDiv;
-			if ( intParams["HWPMode"] == 2 )
+			if ( intParams["HWPMode"] == HWPCONT )
 			{
 				// do not poll detector too frequently. During continious motion of HWP it is not needed
 				msec_sleep(250.0);
@@ -1641,7 +1647,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		else
 		{
 			frameCounter++;
-			if ( ( withHWPMotor && ( intParams["HWPMode"]==1 ) ) ||
+			if ( ( withHWPMotor && ( intParams["HWPMode"]==HWPSTEP ) ) ||
 				( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
 			{
 				move(3,col1name);printw("frame no.");
@@ -1650,7 +1656,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 		}
 		// Logic: if HWP was moving in the end of previous step, it moved also during current step.
-		if ( withHWPMotor && (intParams["HWPMode"]==1) )
+		if ( withHWPMotor && (intParams["HWPMode"]==HWPSTEP) )
 		{
 			if (motionStarted)
 			{
@@ -1700,7 +1706,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	augmentPrimaryHDU(); // keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
 
 	// Then we add data on rotation of HWP (if any) and motion of Mirror (if any)
-	if ( withHWPMotor && (intParams["HWPMode"]==1) )
+	if ( withHWPMotor && (intParams["HWPMode"]==HWPSTEP) )
 	{
 		cout << "writing HWP angle data" << endl;
 		angleContainer.convertToIntervals();
@@ -2130,6 +2136,13 @@ void Regime::addAuxiliaryHDU()
 	sprintf(newcard,"HWPBAND = %d",intParams["HWPBand"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "HWPBAND", card, & status);
+	
+	if ( intParams["HWPMode"] == HWPOFF )
+	{
+		sprintf(newcard,"HWPANGLE = %.2f",doubleParams["HWPStart"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "HWPANGLE", card, & status);
+	}
 
 	double RONSigma[3];
 	double sensitiv[3];

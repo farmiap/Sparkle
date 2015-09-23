@@ -33,6 +33,13 @@ enum
 
 enum
 {
+	HWPOFF = 0,
+	HWPSTEP,
+	HWPCONT
+};
+
+enum
+{
 	MIRROROFF = 0,
 	MIRRORLINPOL,
 	MIRRORFINDER,
