@@ -399,6 +399,7 @@ int Regime::procCommand(string command)
 	{
 		if ( tokens.size() == 2)
 		{
+			active = FALSE;
 			stringParams[tokens[0]] = tokens[1];
 			switch ( pathesCommands[tokens[0]] )
 			{
@@ -414,7 +415,6 @@ int Regime::procCommand(string command)
 				default:
 					break;
 			}
-			active = FALSE;
 		}
 		else if ( commandHints.count( tokens[0] ) > 0 )
 			cout << commandHints[tokens[0]] << endl;
