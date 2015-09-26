@@ -123,3 +123,5 @@ ADCMotor2Slope 0.01
 ADCMotor2Speed 30.000000
 ADCMotor2Intercept -9000
 ADCMotor2Dir 0
+OCSIP 192.168.15.12
+OCSport 5005

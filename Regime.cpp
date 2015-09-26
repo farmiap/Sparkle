@@ -6,6 +6,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h> 
 #include "atmcdLXd.h"
 #include <fitsio.h>
 
@@ -225,6 +228,9 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["filter6ADCcoef"] = 0.0;
 	doubleParams["filter7ADCcoef"] = 0.0;
 	
+	stringParams["OCSIP"] = "192.168.15.12";
+	intParams["OCSport"] = 5005;
+	
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
 	stringParams["prtaname"] = "";
@@ -239,6 +245,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	actionCommands["prtas"] = RTASPOOL;
 	actionCommands["tim"] = GETTIMINGS;
 	actionCommands["testnc"] = TESTNCURSES;
+	actionCommands["getobj"] = GETOBJECTFROMOCS;
 
 	commandHintsFill();
 
@@ -303,6 +310,8 @@ int Regime::procCommand(string command)
 			case TESTNCURSES:
 				testNCurses();
 				break;
+			case GETOBJECTFROMOCS:
+				getObjectFromOCS();
 			default:
 				break;
 			}
@@ -2481,6 +2490,83 @@ void Regime::processImage(at_32* data, at_32* data2, int width, int height, int 
 	*inten = (double)_ninten;
 }
 
+int Regime::getObjectFromOCS()
+{
+	int sockfd, portno, n;
+
+	struct sockaddr_in serv_addr;
+	struct hostent *server;
+
+	char buffer[256];
+	cout << "Getting data from OCS on " << stringParams["OCSIP"] << ", port " << intParams["OCSport"] << endl;
+
+	portno = intParams["OCSport"];
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) 
+		cout << "ERROR opening socket" << endl;
+	server = gethostbyname(stringParams["OCSIP"].c_str());
+	if (server == NULL) {
+		cout << "ERROR, no such host" << endl;
+		return 0;
+	}
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr,server->h_length);
+	serv_addr.sin_port = htons(portno);
+	if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) 
+	{
+		cout << "ERROR connecting" << endl;
+		return 0;
+	}
+	bzero(buffer,256);
+//    sprintf(buffer,"getTarget");
+	
+	struct timeval tv;
+	time_t nowtime;
+	struct tm *nowtm;
+	char tmbuf[64];
+	
+	gettimeofday(&tv, NULL);
+	nowtime = tv.tv_sec;
+	nowtm = gmtime(&nowtime);
+	if ( nowtm->tm_hour < 12 )
+		tv.tv_sec = tv.tv_sec-86400;
+	nowtime = tv.tv_sec;
+	nowtm = gmtime(&nowtime);
+	strftime(tmbuf, sizeof tmbuf, "%Y%m%d.%H%M%S", nowtm);
+	sprintf(buffer,"<CmdCUID=6.0.1.2.1.%s>",tmbuf);
+
+	n = write(sockfd,buffer,strlen(buffer));
+	if (n < 0)
+	{
+		cout << "ERROR writing to socket" << endl;
+		return 0;
+	}
+	
+	bzero(buffer,256);
+	n = read(sockfd,buffer,255);
+	if (n < 0) 
+	{
+		cout << "ERROR reading from socket" << endl;
+		return 0;
+	}
+	
+	string message(buffer,256);
+	size_t posRA = message.find("curRA=");
+	size_t posDec = message.find("curDec=");
+	if (posRA>0)
+	{
+		doubleParams["RA"] = RAstringToDouble(message.substr(posRA+6,9));
+		cout << "RA:" << doubleParams["RA"] << endl;
+	}
+	if (posDec>0)
+	{
+		doubleParams["Dec"] = DecstringToDouble(message.substr(posDec+7,10));
+		cout << "Dec:" << doubleParams["Dec"] << endl;
+	}
+	return 1;
+}
+
 void printerror( int status)
 {
     /*****************************************************/
@@ -2554,7 +2640,8 @@ double RAstringToDouble(string inputstring)
 	getTokens(inputstring, ':', &RAtokens);
 	if ( RAtokens.size() == 3 )
 	{
-		int hour,min,sec;
+		int hour,min;
+		double sec;
 		if ( is_integer( RAtokens[0] ) )
 			istringstream ( RAtokens[0] ) >> hour;
 		else
@@ -2563,11 +2650,11 @@ double RAstringToDouble(string inputstring)
 			istringstream ( RAtokens[1] ) >> min;
 		else
 			cout << "wrong min format" << endl;
-		if ( is_integer( RAtokens[2] ) )
+		if ( is_double( RAtokens[2] ) )
 			istringstream ( RAtokens[2] ) >> sec;
 		else
 			cout << "wrong sec format" << endl;
-		RA = 15.0*(double)hour + 0.25*(double)min + 0.25*(double)sec/60.0;
+		RA = 15.0*(double)hour + 0.25*(double)min + 0.25*sec/60.0;
 	}
 	else
 	{
@@ -2584,7 +2671,8 @@ double DecstringToDouble(string inputstring)
 	getTokens(inputstring, ':', &Dectokens);
 	if ( Dectokens.size() == 3 )
 	{
-		int deg,min,sec;
+		int deg,min;
+		double sec;
 		if ( is_integer( Dectokens[0] ) )
 			istringstream ( Dectokens[0] ) >> deg;
 		else
@@ -2593,18 +2681,18 @@ double DecstringToDouble(string inputstring)
 			istringstream ( Dectokens[1] ) >> min;
 		else
 			cout << "wrong min format" << endl;
-		if ( is_integer( Dectokens[2] ) )
+		if ( is_double( Dectokens[2] ) )
 			istringstream ( Dectokens[2] ) >> sec;
 		else
 			cout << "wrong sec format" << endl;
 
 		if ( Dectokens[0].compare(0,1,"-") == 0 )
 		{
-			dec = (double)deg - (double)min/60.0 - (double)sec/3600.0;
+			dec = (double)deg - (double)min/60.0 - sec/3600.0;
 		}
 		else
 		{
-			dec = (double)deg + (double)min/60.0 + (double)sec/3600.0;
+			dec = (double)deg + (double)min/60.0 + sec/3600.0;
 		} 
 	}
 	else

@@ -28,7 +28,8 @@ enum
 	GETTIMINGS,		
 	MAXFLUX,
 	RTASPOOL,
-	TESTNCURSES
+	TESTNCURSES,
+	GETOBJECTFROMOCS
 };
 
 enum
@@ -105,6 +106,8 @@ private:
 	
 	void calculateADC(double* _angle1,double* _angle2);
 	double parallacticAngle();
+	
+	int getObjectFromOCS();
 	
 	void augmentPrimaryHDU();
 	void addAuxiliaryHDU();
