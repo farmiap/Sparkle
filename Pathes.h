@@ -25,7 +25,8 @@ public:
 	const char *getSpoolPath() {return spool_path.c_str();};
 	const char *getSpoolPathSuff() {return spool_path_suff.c_str();};
 	const char *getRTAPath() {return rta_path.c_str();};
-
+	const char *getAutopathSuff();
+	
 	void print();
 
 	Pathes();

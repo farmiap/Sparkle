@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "Pathes.h"
@@ -51,3 +52,25 @@ int Pathes::validate()
 
 	return 1;
 }
+
+const char* Pathes::getAutopathSuff()
+{
+	struct timeval tv;
+	time_t nowtime;
+	struct tm *nowtm;
+	char tmbuf[64];
+	
+	gettimeofday(&tv, NULL);
+	nowtime = tv.tv_sec;
+	nowtm = gmtime(&nowtime);
+	if ( nowtm->tm_hour < 12 )
+		tv.tv_sec = tv.tv_sec-86400;
+	nowtime = tv.tv_sec;
+	nowtm = gmtime(&nowtime);
+	strftime(tmbuf, sizeof tmbuf, "%Y%m%d%H%M%S", nowtm);
+	
+	string timename = fits_dir + string(tmbuf) + fits_suffix;
+
+	return timename.c_str();
+}
+

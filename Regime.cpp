@@ -80,6 +80,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 // detector
 	intParams["skip"] = 1;
 	intParams["numKin"]  = 10;      // kinetic cycles
+	intParams["limitRTA"] = 100000; // limits length of RTA series
 	intParams["shutter"] = 0;       // 0 - close, 1 - open
 	intParamsValues["shutter"]["close"] = 0;
 	intParamsValues["shutter"]["open"]  = 1;
@@ -1090,6 +1091,7 @@ void Regime::commandHintsFill()
 	
 	commandHints["skip"] = "RTA mode: period of writing frame to disk: 1 - every frame is written, 2 - every other frame is written, etc";
 	commandHints["numKin"]  = "number of kinetic cycles in series";
+	commandHints["limitRTA"] = "limits length of RTA series";
 	commandHints["shutter"] = "shutter: 0 - close, 1 - open";
 	commandHints["ft"]      = "frame transfer: 0 - disabled, 1 - enabled";
 	commandHints["adc"]    = "AD channel: 0 - 14-bit (faster), 1 - 16-bit (slower)";
@@ -1490,7 +1492,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	
 	MirrorMotionRTA mirrorMotion(mirrorActuator,intParams["mirrorPosOff"],intParams["mirrorPosLinpol"],doubleParams["mirrorBeamTime"]);
 	
-	while ( 1 ) {
+	while ( frameCounter < intParams["limitRTA"] ) {
 		if (frameCounter>0) ch = getch();
 		if ( (ch=='q') || (ch=='x') ) 
 			if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
@@ -1656,13 +1658,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		else
 		{
 			frameCounter++;
-			if ( ( withHWPMotor && ( intParams["HWPMode"]==HWPSTEP ) ) ||
-				( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
-			{
+//			if ( ( withHWPMotor && ( intParams["HWPMode"]==HWPSTEP ) ) ||
+//				( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO ) ) )
+//			{
 				move(3,col1name);printw("frame no.");
 				move(3,col1val);printw("%d",frameCounter);
 				msec_sleep(400.0);
-			}
+//			}
 		}
 		// Logic: if HWP was moving in the end of previous step, it moved also during current step.
 		if ( withHWPMotor && (intParams["HWPMode"]==HWPSTEP) )
@@ -1730,6 +1732,11 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 	// Finally we write additional keywords into specially created empty HDU.
 	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, MIRRMODE, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
+	
+	if ( stringParams["fitsname"] == "auto" )
+	{
+		rename((char*)pathes.getSpoolPathSuff(),(char*)pathes.getAutopathSuff());
+	}
 	
 	delete data;
 	delete data2;
