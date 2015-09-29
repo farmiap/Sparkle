@@ -587,8 +587,17 @@ void Regime::printRegimeBlock(string name, int vshift)
 	move(line,col2val); printw("%s",horSpeedModeString.substr(0,16).c_str());line++;
 	
 	line = 2 + vshift;
-	move(line,col3name);printw("filter");line++;
-	move(line,col3name);printw("ADCMode");line++;
+	
+	move(line,col3name);printw("filter");
+	move(line,col3val);printw("%s",currentFilterName.c_str());line++;
+	
+	string ADCModeString;
+	for(map<string, int>::iterator it = intParamsValues["ADCMode"].begin();it != intParamsValues["ADCMode"].end();++it)
+		if ( it->second == intParams["ADCMode"] )
+			ADCModeString = it->first;
+		move(line,col3name);printw("ADCMode");
+	move(line,col3val); printw("%s",ADCModeString.substr(0,16).c_str());line++;
+	
 	string mirrorModeString;
 	for(map<string, int>::iterator it = intParamsValues["mirrorMode"].begin();it != intParamsValues["mirrorMode"].end();++it)
 		if ( it->second == intParams["mirrorMode"] )
@@ -1519,11 +1528,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 		}
 		if ( quitRTA )
-		{
-			if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
-			if ( withHWPMotor && intParams["HWPMode"] ) HWPMotor->stopContiniousMotion();
 			break;
-		}
+
 		if ( withHWPMotor && intParams["HWPMode"] ) {
 			if ( intParams["HWPMode"] == HWPSTEP)
 			{
@@ -1701,6 +1707,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 			}
 		}
 	}
+	
+	if (( withDetector ) && ( status == DRV_SUCCESS )) status = AbortAcquisition();
+	if ( withHWPMotor && intParams["HWPMode"] ) HWPMotor->stopContiniousMotion();
 	
 	werase(stdscr);
 	nodelay(stdscr, FALSE);
