@@ -1042,7 +1042,7 @@ int Regime::validate()
 	
 	std::ostringstream oss;
 	oss << "filter" << filtNum << "Pos";
-	currentFilterPos = intParams[oss.str()];
+	currentFilterPos = doubleParams[oss.str()];
 	if ( ( currentFilterPos < 0.0 ) || ( currentFilterPos > 360.0 ) )
 	{
 		cout << "Filter position should be between 0 and 360" << endl;
@@ -1313,6 +1313,8 @@ int Regime::apply()
 		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDir"],doubleParams["filterSpeed"]);
 		
 		filterMotor->startMoveToAngleWait(currentFilterPos);
+		
+		cout << "filter: " << currentFilterName << " pos: " << currentFilterPos << endl;
 	}
 
 	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
@@ -2004,32 +2006,42 @@ bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirro
 
 	cout << "Parking motors ... " << endl;
 	
+	cout << "HWP..." << flush;
 	if (_withHWPMotor) {
 		_HWPMotor->startMoveToAngleWait(0.0);
 	}
-
+	cout << "done" << endl;
+	
+	cout << "HWP act..." << flush;
 	if (_withHWPAct) {
 		_HWPActuator->startMoveToPositionWait(0);
 	}
-
+	cout << "done" << endl;
+	
+	cout << "Mirror act..." << flush;
 	if (_withMirrorAct) {
 		_mirrorActuator->startMoveToPositionWait(0);
 	}
-
+	cout << "done" << endl;
+	
+	cout << "Filter..." << flush;
 	if (_withFilterMotor) {
 		_filterMotor->startMoveToAngleWait(0.0);
 	}
-
+	cout << "done" << endl;
+	
+	cout << "ADC motor1..." << flush;
 	if (_withADCMotor1) {
 		_ADCMotor1->startMoveToAngleWait(0.0);
 	}
-
+	cout << "done" << endl;
+	
+	cout << "ADC motor2..." << flush;
 	if (_withADCMotor2) {
 		_ADCMotor2->startMoveToAngleWait(0.0);
 	}
+	cout << "done" << endl;
 	
-	cout << "done." << endl;
-
 	return true;
 }
 

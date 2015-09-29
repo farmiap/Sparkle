@@ -17,7 +17,7 @@ StandaRotationStage::~StandaRotationStage()
 {
 	if (device != device_undefined)
 	{
-		cout << "closing in destructor" << endl;
+//		cout << "closing in destructor" << endl;
 		if ((result = close_device( &device )) != result_ok)
 			cout << "error closing device " << error_string( result ) << endl;
 	}
@@ -226,7 +226,7 @@ int StandaRotationStage::startMoveToAngleWait(double targetAngle)
 	int isMovingFlag=1;
 	double currentAngle=-999999999.9;
 	usleep(500000);
-	while ( isMovingFlag || ( fabs(currentAngle-targetAngle) > ANGLEMARGIN ) )
+	while ( isMovingFlag || ( !anglesProximityR(currentAngle,targetAngle,ANGLEMARGIN) ) )
 	{
 		getAngle(&isMovingFlag,&currentAngle);
 		usleep(100000);
@@ -341,3 +341,19 @@ string error_string (result_t result)
 		default:						return "success";
 	}
 }
+
+int anglesProximityR(double a, double b, double margin)
+{
+	
+	if (a<margin)
+	{
+		if (b>270) b -= 360;
+	}
+	if (a>360-margin)
+	{
+		if (b<90) b += 360;
+	}
+	return (int)(fabs(a-b)<margin);
+}
+
+

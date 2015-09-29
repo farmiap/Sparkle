@@ -41,5 +41,6 @@ public:
 void print_state (status_t* state);
 string error_string (result_t result);
 double getNextStepValue(int currentStep, double refStep, int pairNum, int groupNum);
+int anglesProximityR(double a, double b, double margin);
 
 #endif
