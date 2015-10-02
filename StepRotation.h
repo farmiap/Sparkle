@@ -1,5 +1,5 @@
-#ifndef HWPROTATION_H
-#define HWPROTATION_H
+#ifndef STEPROTATION_H
+#define STEPROTATION_H
 
 #include <sys/time.h>
 #include <iostream>
@@ -7,7 +7,7 @@
 
 using namespace std;
 
-class HWPRotationTrigger
+class RotationTrigger
 {
 private:
 	int firstTime;
@@ -15,16 +15,16 @@ private:
 	struct timeval startTime;
 	struct timeval prevTime;
 public:
-	HWPRotationTrigger(double _period);
-	HWPRotationTrigger();
-	~HWPRotationTrigger();
+	RotationTrigger(double _period);
+	RotationTrigger();
+	~RotationTrigger();
 
 	void start();
 	void setPeriod(double _period);
 	bool check(int *currentStep);
 };
 
-class HWPAngleContainer
+class AngleContainer
 {
 private:
 	vector<double> angles; // vector contains angles corresponding to frames
@@ -35,19 +35,19 @@ private:
 	vector<int> intrvEnds;
 	vector<double> intrvAngles;
 public:
-	HWPAngleContainer();
-	~HWPAngleContainer();
+	AngleContainer();
+	~AngleContainer();
 
 	void addStatusAndAngle(int _number,int _status,double _angle);
 	void print();
 	void cleanStatus();
 	void convertToIntervals();
-	void writeIntervalsToFits(char* filename);
-	void writePositionsToFits(char* filename);
+	void writeIntervalsToFits(char* filename, const char* extname);
+	void writePositionsToFits(char* filename, const char* extname);
 };
 
-void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> colData);
-void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data);
+void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> colData, const char *extname);
+void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data, const char *extname);
 void printerror2( int status);
 
 #endif

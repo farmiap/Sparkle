@@ -22,7 +22,7 @@
 
 #include "Regime.h"
 #include "ImageAverager.h"
-#include "HWPRotation.h"
+#include "StepRotation.h"
 #include "MirrorMotion.h"
 
 #define TEMP_MARGIN 3.0             // maximum stabilized temperature deviation from required
@@ -205,13 +205,17 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["winTop"] = 512;
 	
 	intParams["ADCMode"] = 0; 
-	intParamsValues["ADCMode"]["off"] = 0;
-	intParamsValues["ADCMode"]["on"]  = 1;
+	intParamsValues["ADCMode"]["off"] = ADCOFF;
+	intParamsValues["ADCMode"]["man"]  = ADCMAN;
+	intParamsValues["ADCMode"]["step"]  = ADCSTEP;
+	intParamsValues["ADCMode"]["auto"]  = ADCAUTO;
+	doubleParams["ADCMotor1Start"] = 0.0;
 	stringParams["ADCMotor1Device"] = ""; 
 	doubleParams["ADCMotor1Slope"] = 0.0; // degrees per engine step
 	doubleParams["ADCMotor1Intercept"] = 0.0; 
 	intParams["ADCMotor1Dir"] = 1; // HWP direction of rotation with positive speed. Check by eye.
 	doubleParams["ADCMotor1Speed"] = 30.0; // speed (degrees per second)
+	doubleParams["ADCMotor2Start"] = 0.0;
 	stringParams["ADCMotor2Device"] = ""; 
 	doubleParams["ADCMotor2Slope"] = 0.0; // degrees per engine step
 	doubleParams["ADCMotor2Intercept"] = 0.0; 
@@ -1326,7 +1330,7 @@ int Regime::apply()
 		cout << "filter: " << currentFilterName << " pos: " << currentFilterPos << endl;
 	}
 
-	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
+	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] > 0 ) )
 	{
 		int ADCMotor1RotationStatus = 0;
 		int ADCMotor2RotationStatus = 0;
@@ -1335,10 +1339,17 @@ int Regime::apply()
 		
 		ADCMotor2RotationStatus = ADCMotor2->initializeStage(stringParams["ADCMotor2Device"],doubleParams["ADCMotor2Slope"],doubleParams["ADCMotor2Intercept"],intParams["ADCMotor2Dir"],doubleParams["ADCMotor2Speed"]);
 
-		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
+		if ( intParams["ADCMode"] == ADCAUTO )
+		{
+			calculateADC(&ADCprismAngle1,&ADCprismAngle2);
 		
-		ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
-		ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
+			ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
+			ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
+		} else
+		{
+			ADCMotor1->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
+			ADCMotor2->startMoveToAngleWait(doubleParams["ADCMotor2Start"]);
+		}
 		
 //		cout << "ADC1 angle: " << ADCprismAngle1 << " ADC2 angle: " << ADCprismAngle2 << endl;
 	}
@@ -1407,13 +1418,24 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int isMovingFlag=1;
 	int currentPosition;
 	int acc=0;
+
+	int ADC1isMoving;
+	int ADC1isMovingPrev=0;
+	int ADC2isMoving;
+	int ADC2isMovingPrev=0;
+	int ADCmotionStarted=0;
 	
 	double HWPAngle;
 	double HWPAngleBeforeCurrentStep = 0;
+
+	double ADC1Angle,ADC2Angle;
+	double ADC1AngleBeforeCurrentStep = 0;
+	double ADC2AngleBeforeCurrentStep = 0;
+	
 	double nextStepValue;
 
-	HWPRotationTrigger HWPTrigger;
-	HWPAngleContainer angleContainer;
+	RotationTrigger HWPTrigger;
+	AngleContainer HWPAngleContainer;
 	
 	if ( withHWPMotor && intParams["HWPMode"] )
 	{
@@ -1441,11 +1463,27 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		cout << "done" << endl;
 	}
 
-	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
+	RotationTrigger ADCTrigger;
+	AngleContainer ADCAngleContainer;
+	
+	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] > 0 ) )
 	{
-		calculateADC(&ADCprismAngle1,&ADCprismAngle2);
-		ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
-		ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
+		if ( intParams["ADCMode"] == ADCAUTO )
+		{
+			calculateADC(&ADCprismAngle1,&ADCprismAngle2);
+			ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
+			ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
+		}
+		else
+		{
+			ADCMotor1->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
+			ADCMotor2->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
+		}
+		if ( intParams["ADCMode"] == ADCSTEP) 
+		{
+			ADCTrigger.setPeriod(doubleParams["HWPPeriod"]);
+			ADCTrigger.start();
+		}
 	}
 	
 	if (withDetector)
@@ -1561,7 +1599,42 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				}
 			}
 		}
-				
+
+		if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"]==ADCSTEP ) ) {
+			ADCMotor1->getAngle(&ADC1isMoving,&ADC1Angle);
+			if (!anglesProximity(ADC1AngleBeforeCurrentStep+nextStepValue,ADC1Angle,1.0))
+				ADC1isMoving = 1;
+			ADCMotor2->getAngle(&ADC2isMoving,&ADC2Angle);
+			if (!anglesProximity(ADC2AngleBeforeCurrentStep+nextStepValue,ADC2Angle,1.0))
+				ADC2isMoving = 1;
+			int currentStepNumber;
+			if ( ADCTrigger.check(&currentStepNumber) )
+			{
+				ADCmotionStarted = 1;
+				ADC1AngleBeforeCurrentStep = ADC1Angle;
+				ADC2AngleBeforeCurrentStep = ADC2Angle;
+				nextStepValue = getNextStepValue(currentStepNumber,doubleParams["ADCStep"],1,1);
+				move(3,col3name);printw("ADC step");
+				move(3,col3val);printw("%d",currentStepNumber);
+//					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",frameCounter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
+				if ( !ADC1isMoving && !ADC2isMoving )
+				{
+					ADCMotor1->startMoveByAngle(nextStepValue);
+					ADCMotor2->startMoveByAngle(nextStepValue);
+					move(6,col3name);printw("                         ");
+				}
+				else
+				{
+					move(6,col3name);printw("ATT: ADC skips steps");
+				}
+			}
+			else
+			{
+				ADCmotionStarted = 0;
+			}
+		}
+
+		
 		if ( withDetector )
 		{
 			if ( status == DRV_SUCCESS ) status = WaitForAcquisitionTimeOut(4500);
@@ -1679,17 +1752,32 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			if (motionStarted)
 			{
-				angleContainer.addStatusAndAngle(frameCounter,1,HWPAngle);
+				HWPAngleContainer.addStatusAndAngle(frameCounter,1,HWPAngle);
 //					HWPisMovingPrev = 1;
 			}
 			else
 			{
-				angleContainer.addStatusAndAngle(frameCounter,(int)(HWPisMoving!=0),HWPAngle);
+				HWPAngleContainer.addStatusAndAngle(frameCounter,(int)(HWPisMoving!=0),HWPAngle);
 //					HWPisMovingPrev = HWPisMoving;
 			}
 		}
 
-		if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == 1 ) )
+		if ( withADCMotor1 && withADCMotor2 && (intParams["ADCMode"]==ADCSTEP) )
+		{
+			if (ADCmotionStarted)
+			{
+				HWPAngleContainer.addStatusAndAngle(frameCounter,1,ADC1Angle);
+//					HWPisMovingPrev = 1;
+			}
+			else
+			{
+				HWPAngleContainer.addStatusAndAngle(frameCounter,(int)(ADC1isMoving!=0),ADC1Angle);
+//					HWPisMovingPrev = HWPisMoving;
+			}
+		}
+
+		
+		if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] == ADCAUTO ) )
 		{
 			double tmpAngle1,tmpAngle2;
 			calculateADC(&tmpAngle1,&tmpAngle2);
@@ -1731,11 +1819,20 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	if ( withHWPMotor && (intParams["HWPMode"]==HWPSTEP) )
 	{
 		cout << "writing HWP angle data" << endl;
-		angleContainer.convertToIntervals();
-		angleContainer.print();
-		angleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());
+		HWPAngleContainer.convertToIntervals();
+		HWPAngleContainer.print();
+		HWPAngleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff(),"HWPINTERVALS");
 	}
 
+	if ( withADCMotor1 && withADCMotor2 && (intParams["ADCMode"]==ADCSTEP) )
+	{
+		cout << "writing ADC angle data" << endl;
+		HWPAngleContainer.convertToIntervals();
+		HWPAngleContainer.print();
+		HWPAngleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff(),"ADCINTERVALS");
+	}
+
+	
 	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
 	{
 		mirrorMotion.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());

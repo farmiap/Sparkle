@@ -2,37 +2,37 @@
 #include <fitsio.h>
 #include <sys/stat.h>
 
-#include "HWPRotation.h"
+#include "StepRotation.h"
 
 using namespace std;
 
-HWPRotationTrigger::HWPRotationTrigger(double _period)
+RotationTrigger::RotationTrigger(double _period)
 {
 	firstTime = 1;
 	period = _period;
 }
 
-HWPRotationTrigger::HWPRotationTrigger()
+RotationTrigger::RotationTrigger()
 {
 	firstTime = 1;
 }
 
-HWPRotationTrigger::~HWPRotationTrigger()
+RotationTrigger::~RotationTrigger()
 {
 }
 
-void HWPRotationTrigger::setPeriod(double _period)
+void RotationTrigger::setPeriod(double _period)
 {
 	period = _period;
 }
 
-void HWPRotationTrigger::start()
+void RotationTrigger::start()
 {
 	struct timezone tz;
 	gettimeofday(&startTime,&tz);
 }
 
-bool HWPRotationTrigger::check(int *currentStep)
+bool RotationTrigger::check(int *currentStep)
 {
 	struct timeval currTime;
 	struct timezone tz;
@@ -50,22 +50,22 @@ bool HWPRotationTrigger::check(int *currentStep)
 	}
 }
 
-HWPAngleContainer::HWPAngleContainer()
+AngleContainer::AngleContainer()
 {
 }
 
-HWPAngleContainer::~HWPAngleContainer()
+AngleContainer::~AngleContainer()
 {
 }
 
-void HWPAngleContainer::addStatusAndAngle(int _number,int _status,double _angle)
+void AngleContainer::addStatusAndAngle(int _number,int _status,double _angle)
 {
 	numbers.push_back(_number);
 	moved.push_back(_status);
 	angles.push_back(_angle);
 }
 
-void HWPAngleContainer::print()
+void AngleContainer::print()
 {
 	FILE *f=fopen("temp.dat","w");
 	vector<int>::iterator itm = moved.begin();
@@ -90,18 +90,18 @@ void HWPAngleContainer::print()
 	fclose(f2);
 }
 
-void HWPAngleContainer::writePositionsToFits(char* filename)
+void AngleContainer::writePositionsToFits(char* filename, const char* extname)
 {
-	writePositionsToASCIITableFITS(moved.size(),filename,angles);
+	writePositionsToASCIITableFITS(moved.size(),filename,angles,extname);
 }
 
 
-void HWPAngleContainer::writeIntervalsToFits(char* filename)
+void AngleContainer::writeIntervalsToFits(char* filename, const char* extname)
 {
-	writeIntervalsToASCIITableFITS(intrvBegins.size(),filename,intrvBegins,intrvEnds,intrvAngles);
+	writeIntervalsToASCIITableFITS(intrvBegins.size(),filename,intrvBegins,intrvEnds,intrvAngles,extname);
 }
 
-void HWPAngleContainer::cleanStatus()
+void AngleContainer::cleanStatus()
 {
 	// This function handles specifics of Standa stage.
 	// Before start of motion (~300-400 ms before) it returns
@@ -123,7 +123,7 @@ void HWPAngleContainer::cleanStatus()
 	}
 }
 
-void HWPAngleContainer::convertToIntervals()
+void AngleContainer::convertToIntervals()
 {
 	intrvBegins.erase(intrvBegins.begin(),intrvBegins.end());
 	intrvEnds.erase(intrvEnds.begin(),intrvEnds.end());
@@ -173,7 +173,7 @@ void HWPAngleContainer::convertToIntervals()
 
 }
 
-void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> colData)
+void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> colData, const char *extname)
 {
 	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
 	int status;
@@ -189,10 +189,7 @@ void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> co
 	char *tunit[1];
 	tunit[0] = (char *)malloc(10*sizeof(char));
 	sprintf(tunit[0],"DEG");
-	
-	char extname[100];
-	sprintf(extname,"HWPPOSITIONS");
-		
+			
 	double *colArray;
 	colArray = (double *)malloc( nrows * sizeof(double) );
 	int counter = 0;
@@ -234,7 +231,7 @@ void writePositionsToASCIITableFITS(int nrows, char* filename, vector<double> co
 }
 
 
-void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data)
+void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1data, vector<int> col2data, vector<double> col3data, const char *extname)
 {
 	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
 	int status;
@@ -262,9 +259,6 @@ void writeIntervalsToASCIITableFITS(int nrows, char* filename, vector<int> col1d
 	sprintf(tunit[0],"");
 	sprintf(tunit[1],"");
 	sprintf(tunit[2],"DEG");
-
-	char extname[100];
-	sprintf(extname,"HWPINTERVALS");
 
 //	int bitpix   =  FLOAT_IMG; /* 32-bit double pixel values       */
 //	long naxis    =   2;  /* 2-dimensional image                            */

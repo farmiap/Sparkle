@@ -47,6 +47,13 @@ enum
 	MIRRORAUTO
 };
 
+enum
+{
+	ADCOFF = 0,
+	ADCAUTO,
+	ADCMAN,
+	ADCSTEP
+};
 
 class Regime
 {
