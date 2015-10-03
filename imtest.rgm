@@ -112,6 +112,7 @@ object none
 program none
 prtaname rta
 telescope 2.5m
+pixelSize 0.000015
 ADCMode 0
 ADCMotor1Device /dev/ximc/000000EF
 ADCMotor1Slope 0.01

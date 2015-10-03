@@ -76,6 +76,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["focusStation"] = "none"; // N1, N2, C1 etc.
 	doubleParams["referencePA"] = 0.0; // for definition see ADCreport.pdf
 	intParams["plateMirror"] = 0; // is image mirrored? (for ADC)
+	doubleParams["pixelSize"] = 1.5e-5; // pixel size
 	
 // detector
 	intParams["skip"] = 1;
@@ -221,6 +222,8 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["ADCMotor2Intercept"] = 0.0; 
 	intParams["ADCMotor2Dir"] = 1; // HWP direction of rotation with positive speed. Check by eye.
 	doubleParams["ADCMotor2Speed"] = 30.0; // speed (degrees per second)
+	doubleParams["ADCStep"] = 10.0;
+	doubleParams["ADCPeriod"] = 10.0;
 
 	doubleParams["dero"] = 0.0;
 	
@@ -1429,7 +1432,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	double HWPAngleBeforeCurrentStep = 0;
 
 	double ADC1Angle,ADC2Angle;
-	double ADC1AngleBeforeCurrentStep = 0;
+	double ADC1AngleBeforeCurrentStep = doubleParams["ADC"];
 	double ADC2AngleBeforeCurrentStep = 0;
 	
 	double nextStepValue;
@@ -1477,11 +1480,11 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		else
 		{
 			ADCMotor1->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
-			ADCMotor2->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
+			ADCMotor2->startMoveToAngleWait(doubleParams["ADCMotor2Start"]);
 		}
 		if ( intParams["ADCMode"] == ADCSTEP) 
 		{
-			ADCTrigger.setPeriod(doubleParams["HWPPeriod"]);
+			ADCTrigger.setPeriod(doubleParams["ADCPeriod"]);
 			ADCTrigger.start();
 		}
 	}
@@ -2288,6 +2291,17 @@ void Regime::addAuxiliaryHDU()
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "ADCMODE", card, & status);
 	
+	if ( ( intParams["ADCMode"] == ADCOFF ) || ( intParams["ADCMode"] == ADCMAN ) )
+	{
+		sprintf(newcard,"ADC1ANGLE = %.2f",doubleParams["ADCMotor1Start"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "ADC1ANGLE", card, & status);
+
+		sprintf(newcard,"ADC2ANGLE = %.2f",doubleParams["ADCMotor2Start"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "ADC2ANGLE", card, & status);
+	}
+	
 	string HWPModeString;
 	for(map<string, int>::iterator it = intParamsValues["HWPMode"].begin();it != intParamsValues["HWPMode"].end();++it)
 		if ( it->second == intParams["HWPMode"] )
@@ -2338,6 +2352,10 @@ void Regime::addAuxiliaryHDU()
 	sprintf(newcard,"SENSITIV = %.2f",sensitiv[intParams["preamp"]]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "SENSITIV", card, & status);
+	
+	sprintf(newcard,"PIXELSIZ = %e",doubleParams["pixelSize"]);
+	fits_parse_template(newcard, card, &keytype, &status);
+	fits_update_card(fptr, "PIXELSIZ", card, & status);
 	
 	sprintf(newcard,"LIGHT = %d",intParams["light"]);
 	fits_parse_template(newcard, card, &keytype, &status);
