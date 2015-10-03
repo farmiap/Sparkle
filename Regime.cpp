@@ -1429,13 +1429,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int ADCmotionStarted=0;
 	
 	double HWPAngle;
-	double HWPAngleBeforeCurrentStep = 0;
+	double HWPAngleBeforeCurrentStep = doubleParams["HWPStart"];
 
 	double ADC1Angle,ADC2Angle;
-	double ADC1AngleBeforeCurrentStep = doubleParams["ADC"];
-	double ADC2AngleBeforeCurrentStep = 0;
+	double ADC1AngleBeforeCurrentStep = doubleParams["ADCMotor1Start"];
+	double ADC2AngleBeforeCurrentStep = doubleParams["ADCMotor2Start"];
 	
-	double nextStepValue;
+	double nextStepValue = 0;
 
 	RotationTrigger HWPTrigger;
 	AngleContainer HWPAngleContainer;
