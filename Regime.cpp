@@ -2293,13 +2293,13 @@ void Regime::addAuxiliaryHDU()
 	
 	if ( ( intParams["ADCMode"] == ADCOFF ) || ( intParams["ADCMode"] == ADCMAN ) )
 	{
-		sprintf(newcard,"ADC1ANGLE = %.2f",doubleParams["ADCMotor1Start"]);
+		sprintf(newcard,"ADC1ANGL = %.2f",doubleParams["ADCMotor1Start"]);
 		fits_parse_template(newcard, card, &keytype, &status);
-		fits_update_card(fptr, "ADC1ANGLE", card, & status);
+		fits_update_card(fptr, "ADC1ANGL", card, & status);
 
-		sprintf(newcard,"ADC2ANGLE = %.2f",doubleParams["ADCMotor2Start"]);
+		sprintf(newcard,"ADC2ANGL = %.2f",doubleParams["ADCMotor2Start"]);
 		fits_parse_template(newcard, card, &keytype, &status);
-		fits_update_card(fptr, "ADC2ANGLE", card, & status);
+		fits_update_card(fptr, "ADC2ANGL", card, & status);
 	}
 	
 	string HWPModeString;
