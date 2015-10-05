@@ -57,7 +57,7 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 {
 	if ( (deviceName.compare(_deviceName)==0) && (_convSlope==convSlope) && (_convIntercept==convIntercept) && (_dirInv==directionInverted) && (_speed==speed) && (device!=device_undefined))
 	{
-		cout << "Stage is already here, no need of initialization" << endl;
+//		cout << "Stage is already here, no need of initialization" << endl;
 		return 1;
 	}
 

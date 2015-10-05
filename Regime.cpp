@@ -682,17 +682,17 @@ int Regime::saveToFile(string path,string name)
 	
 	for(map<string, int>::iterator it = intParams.begin();it != intParams.end();++it)
 	{
-		cout << "write parameter %s " << it->first << "all is ok" << endl;
+//		cout << "write parameter " << it->first << " all is ok" << endl;
 		fprintf(f,"%s %d\n",it->first.c_str(),it->second);
 	}
 	for(map<string, double>::iterator it = doubleParams.begin();it != doubleParams.end();++it)
 	{
-                cout << "write parameter %s " << it->first << "all is ok" << endl;
+  //              cout << "write parameter " << it->first << " all is ok" << endl;
 		fprintf(f,"%s %f\n",it->first.c_str(),it->second);
 	}
 	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
 	{
-		cout << "write parameter %s " << it->first << "all is ok" << endl;
+//		cout << "write parameter " << it->first << " all is ok" << endl;
 		fprintf(f,"%s %s\n",it->first.c_str(),it->second.c_str());
 	}
 	fclose(f);
