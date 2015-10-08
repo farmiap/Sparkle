@@ -2697,6 +2697,7 @@ int Regime::getObjectFromOCS()
 	string message(buffer,256);
 	size_t posRA = message.find("curRA=");
 	size_t posDec = message.find("curDec=");
+	size_t posDero = message.find("curDero=");
 	if (posRA>0)
 	{
 		doubleParams["RA"] = RAstringToDouble(message.substr(posRA+6,9));
@@ -2706,6 +2707,15 @@ int Regime::getObjectFromOCS()
 	{
 		doubleParams["Dec"] = DecstringToDouble(message.substr(posDec+7,10));
 		cout << "Dec:" << doubleParams["Dec"] << endl;
+	}
+	if (posDero>0)
+	{
+		double deroAngle;
+		istringstream ( message.substr(posDec+8,7) ) >> deroAngle;
+		deroDifference = deroAngle - parallacticAngle();
+		positionAngle = deroAngle - parallacticAngle() + doubleParams["referencePA"];
+		cout << "Dero:" << deroAngle << endl;
+		cout << "positionAngle:" << positionAngle << endl;
 	}
 	return 1;
 }
