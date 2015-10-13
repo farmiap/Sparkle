@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <iterator>
+#include <fstream>
 
 #include <libnova/transform.h>
 #include <libnova/julian_day.h>
@@ -242,6 +243,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	stringParams["fitsname"] = ""; 
 	stringParams["fitsdir"] = "";
 	stringParams["prtaname"] = "";
+	stringParams["cfgfile"] = "";
 
 	pathesCommands["fitsname"] = FITSNAME;
 	pathesCommands["fitsdir"] = FITSDIR;
@@ -254,6 +256,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	actionCommands["tim"] = GETTIMINGS;
 	actionCommands["testnc"] = TESTNCURSES;
 	actionCommands["getobj"] = GETOBJECTFROMOCS;
+	actionCommands["loadcfg"] = LOADCFG;
 
 	commandHintsFill();
 
@@ -320,6 +323,8 @@ int Regime::procCommand(string command)
 				break;
 			case GETOBJECTFROMOCS:
 				getObjectFromOCS();
+			case LOADCFG:
+				loadCFGfile();
 			default:
 				break;
 			}
@@ -2631,6 +2636,39 @@ void Regime::processImage(at_32* data, at_32* data2, int width, int height, int 
 	*satPix = _satPix;
 	*subsatPix = _subsatPix;
 	*inten = (double)_ninten;
+}
+
+int Regime::loadCFGfile()
+{
+	struct stat  buffer;
+	int st = stat(stringParams["cfgfile"].c_str(), &buffer);
+	if ( st != 0 )
+	{
+		cout << "error: stat check: file doesn't exist" << endl;
+		return 0;
+	}
+	if ( S_ISDIR(buffer.st_mode) )
+	{
+		cout << "error: stat check: this is directory!" << endl;
+		return 0;
+	}
+
+	ifstream file(stringParams["cfgfile"].c_str(),ios::in);
+
+	if ( !file )
+	{
+		cout << "error: ifstream check: file doesn't exist" << endl;
+		return 0;
+	}
+
+	string str;
+	while ( getline(file,str) )
+		procCommand(str);
+
+	file.close();
+
+	return 1;
+
 }
 
 int Regime::getObjectFromOCS()

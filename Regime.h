@@ -29,7 +29,8 @@ enum
 	MAXFLUX,
 	RTASPOOL,
 	TESTNCURSES,
-	GETOBJECTFROMOCS
+	GETOBJECTFROMOCS,
+	LOADCFG
 };
 
 enum
@@ -115,6 +116,8 @@ private:
 	double parallacticAngle();
 	
 	int getObjectFromOCS();
+
+	int loadCFGfile();
 	
 	void augmentPrimaryHDU();
 	void addAuxiliaryHDU();
