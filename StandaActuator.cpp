@@ -74,6 +74,7 @@ int StandaActuator::initializeActuator(string _deviceName, double _speed)
 	engine_settings.EngineFlags |= ENGINE_ANTIPLAY;
 	// microstep fraction 8
 	engine_settings.MicrostepMode = MICROSTEP_MODE_FRAC_8;
+	engine_settings.NomSpeed = speed;
 	
 	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
 	{
