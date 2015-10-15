@@ -64,9 +64,12 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 // general	
 	doubleParams["latitude"] = 0.0; // latitude of telescope, deg, positive is north
 	doubleParams["longitude"] = 0.0; // latitude of telescope, deg, positive is east
-	doubleParams["altitude"] = 0.0; // altitude a.s.l. of telescope, m
+	doubleParams["observAltitude"] = 0.0; // altitude a.s.l. of telescope, m
 	doubleParams["RA"] = 0.0; // deg
 	doubleParams["dec"] = 0.0; // deg
+	doubleParams["az"] = 0.0; // deg
+	doubleParams["alt"] = 0.0; // deg
+	intParams["tracking"] = 1; // 1 if telescope tracks, 0 otherwise
 	stringParams["object"] = "none"; // object name
 	stringParams["program"] = "none"; // observational program ID
 	stringParams["author"] = "nobody"; // author of observational program
@@ -323,8 +326,10 @@ int Regime::procCommand(string command)
 				break;
 			case GETOBJECTFROMOCS:
 				getObjectFromOCS();
+				break;
 			case LOADCFG:
 				loadCFGfile();
+				break;
 			default:
 				break;
 			}
@@ -530,10 +535,17 @@ void Regime::printRegimeBlock(string name, int vshift)
 	move(line,col1val); printw("%s",stringParams["program"].substr(0,16).c_str());line++;
 	move(line,col1name);printw("author");
 	move(line,col1val); printw("%s",stringParams["author"].substr(0,16).c_str());line++;
-	move(line,col1name);printw("RA");
-	move(line,col1val); printw("%.4f d",doubleParams["RA"]);line++;
-	move(line,col1name);printw("dec");
-	move(line,col1val); printw("%+.4f d",doubleParams["dec"]);line++;
+	if ( intParams["tracking"] == 1 ) {
+		move(line,col1name);printw("RA");
+		move(line,col1val); printw("%.4f d",doubleParams["RA"]);line++;
+		move(line,col1name);printw("dec");
+		move(line,col1val); printw("%+.4f d",doubleParams["dec"]);line++;
+	} else {
+		move(line,col1name);printw("az");
+		move(line,col1val); printw("%.4f d",doubleParams["az"]);line++;
+		move(line,col1name);printw("alt");
+		move(line,col1val); printw("%+.4f d",doubleParams["alt"]);line++;
+	}
 	line++;
 	string shutterString;
 	for(map<string, int>::iterator it = intParamsValues["shutter"].begin();it != intParamsValues["shutter"].end();++it)
@@ -725,7 +737,7 @@ int Regime::validate()
 		return 0;
 	}
 
-	if (( doubleParams["altitude"] < 0.0 ) || ( doubleParams["altitude"] > 10000.0 ))
+	if (( doubleParams["observAltitude"] < 0.0 ) || ( doubleParams["observAltitude"] > 10000.0 ))
 	{
 		cout << "altitude validation failed" << endl;
 		return 0;
@@ -1096,9 +1108,11 @@ void Regime::commandHintsFill()
 {
 	commandHints["latitude"] = "latitude of telescope, deg, positive is north";
 	commandHints["longitude"] = "longitude of telescope, deg, positive is east";
-	commandHints["altitude"] = "altitude a.s.l. of telescope, m";
+	commandHints["observAltitude"] = "altitude a.s.l. of telescope, m";
 	commandHints["RA"] = "object right ascension, deg. Also HH:MM:SS format allowable.";
 	commandHints["dec"] = "object declination, deg. Also +dd:mm:ss format allowable.";
+	commandHints["az"] = "Object azimuth. Used while telescope doesnt track";
+	commandHints["alt"] = "Object altitude. Used while telescope doesnt track";
 	commandHints["object"] = "object name";
 	commandHints["program"] = "observational program ID";
 	commandHints["author"] = "author of observational program";
@@ -2211,13 +2225,26 @@ void Regime::augmentPrimaryHDU()
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "USERTXT2", card, & status);
 	
-	sprintf(newcard,"RA = %.4f",doubleParams["RA"]);
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "USERTXT3", card, & status);
+	if ( intParams["tracking"] == 1 )
+	{
+		sprintf(newcard,"RA = %.4f",doubleParams["RA"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "USERTXT3", card, & status);
 
-	sprintf(newcard,"DEC = %.4f",doubleParams["dec"]);
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "USERTXT4", card, & status);
+		sprintf(newcard,"DEC = %.4f",doubleParams["dec"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "USERTXT4", card, & status);
+	}
+	else
+	{
+		sprintf(newcard,"AZ = %.4f",doubleParams["az"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "USERTXT3", card, & status);
+
+		sprintf(newcard,"ALT = %.4f",doubleParams["alt"]);
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(fptr, "USERTXT4", card, & status);
+	}
 	
 	fits_close_file(fptr, &status);
 
@@ -2251,7 +2278,7 @@ void Regime::addAuxiliaryHDU()
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "LATITUDE", card, & status);
 
-	sprintf(newcard,"ALTITUDE = %.4f",doubleParams["altitude"]);
+	sprintf(newcard,"ALTITUDE = %.4f",doubleParams["observAltitude"]);
 	fits_parse_template(newcard, card, &keytype, &status);
 	fits_update_card(fptr, "ALTITUDE", card, & status);
 	
@@ -2385,21 +2412,31 @@ void Regime::addAuxiliaryHDU()
 
 void Regime::calculateADC(double *_angle1, double *_angle2)
 {
-	struct ln_lnlat_posn observer;
-	struct ln_equ_posn object;
-	struct ln_hrz_posn hrz;
+	double zen;
+
+	if ( intParams["tracking"] == 1 )
+	{
+		struct ln_lnlat_posn observer;
+		struct ln_equ_posn object;
+		struct ln_hrz_posn hrz;
+		
+		observer.lng = doubleParams["longitude"];
+		observer.lat = doubleParams["latitude"];
+		
+		object.ra = doubleParams["RA"];
+		object.dec = doubleParams["dec"];
+		
+		double JD = ln_get_julian_from_sys();
+		
+		ln_get_hrz_from_equ(&object, &observer, JD, &hrz);
+		
+		zen = 90-hrz.alt;
+	}
+	else
+	{
+		zen = 90-doubleParams["alt"];
+	}
 	
-	observer.lng = doubleParams["longitude"];
-	observer.lat = doubleParams["latitude"];
-	
-	object.ra = doubleParams["RA"];
-	object.dec = doubleParams["dec"];
-	
-	double JD = ln_get_julian_from_sys();
-	
-	ln_get_hrz_from_equ(&object, &observer, JD, &hrz);
-	
-	double zen = (90-hrz.alt);
 	
 	double gamma = currentFilterADCcoef*tan(zen/RAD);
 	 
@@ -2420,7 +2457,13 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 	} 
 	else if ( stringParams["focusStation"].compare("C1") == 0 )
 	{
-		double currentDero = deroDifference + parallacticAngle();
+		double currentDero = 0;
+		if ( intParams["tracking"] == 1 )
+		{
+			currentDero = deroDifference + parallacticAngle();
+		} else {
+			currentDero = doubleParams["dero"];
+		}
 		angle1 = doubleParams["referencePA"] + currentDero - 90.0 + deltaChi;
 		angle2 = doubleParams["referencePA"] + currentDero + 90.0 - deltaChi;
 	}
@@ -2733,23 +2776,97 @@ int Regime::getObjectFromOCS()
 	}
 	
 	string message(buffer,256);
-	size_t posRA = message.find("curRA=");
-	size_t posDec = message.find("curDec=");
-	size_t posDero = message.find("curDero=");
-	if (posRA>0)
+	
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) 
 	{
-		doubleParams["RA"] = RAstringToDouble(message.substr(posRA+6,9));
-		cout << "RA:" << doubleParams["RA"] << endl;
+		cout << "ERROR connecting" << endl;
+		return 0;
 	}
-	if (posDec>0)
+	bzero(buffer,256);
+	
+	gettimeofday(&tv, NULL);
+	nowtime = tv.tv_sec;
+	nowtm = gmtime(&nowtime);
+	if ( nowtm->tm_hour < 12 )
+		tv.tv_sec = tv.tv_sec-86400;
+	nowtime = tv.tv_sec;
+	nowtm = gmtime(&nowtime);
+	strftime(tmbuf, sizeof tmbuf, "%Y%m%d.%H%M%S", nowtm);
+	sprintf(buffer,"<CmdCUID=6.0.1.1.1.%s>",tmbuf);
+
+	n = write(sockfd,buffer,strlen(buffer));
+	if (n < 0)
 	{
-		doubleParams["Dec"] = DecstringToDouble(message.substr(posDec+7,10));
-		cout << "Dec:" << doubleParams["Dec"] << endl;
+		cout << "ERROR writing to socket" << endl;
+		return 0;
 	}
+	
+	bzero(buffer,256);
+	n = read(sockfd,buffer,255);
+	if (n < 0) 
+	{
+		cout << "ERROR reading from socket" << endl;
+		return 0;
+	}
+	
+	string messageName(buffer,256);
+
+	size_t posName  = messageName.find("Name=");
+	if (posName>0)
+	{
+		size_t posNameF = messageName.substr(posName+5,20).find(">");
+		stringParams["object"] = messageName.substr(posName+5,posNameF);
+		cout << "object:" << stringParams["object"] << endl;
+	}
+	
+	size_t posAz    = message.find("curAz=");
+	size_t posAlt   = message.find("curAlt=");
+	size_t posTrack = message.find("trackTime=");
+	size_t posRA    = message.find("curRA=");
+	size_t posDec   = message.find("curDec=");
+	size_t posDero  = message.find("curDero=");
+	if (posTrack>0)
+	{
+		double trackTime;
+		istringstream ( message.substr(posTrack+10,1) ) >> trackTime;
+		if (trackTime>0)
+		{	
+			intParams["tracking"] = 1;
+			cout << "The telescope is tracking" << endl;
+			if (posRA>0)
+			{
+				doubleParams["RA"] = RAstringToDouble(message.substr(posRA+6,9));
+				cout << "RA:" << doubleParams["RA"] << endl;
+			}
+			if (posDec>0)
+			{
+				doubleParams["Dec"] = DecstringToDouble(message.substr(posDec+7,10));
+				cout << "Dec:" << doubleParams["Dec"] << endl;
+			}
+		}
+		else
+		{
+			intParams["tracking"] = 0;
+			cout << "The telescope is not tracking" << endl;
+			if (posAz>0)
+			{
+				istringstream ( message.substr(posAz+6,9) ) >> doubleParams["az"];
+				cout << "Azimuth:" << doubleParams["az"] << endl;
+			}
+			if (posAlt>0)
+			{
+				istringstream ( message.substr(posAlt+7,9) ) >> doubleParams["alt"];
+				cout << "Altitude:" << doubleParams["alt"] << endl;
+			}
+		}
+	}
+
 	if (posDero>0)
 	{
 		double deroAngle;
-		istringstream ( message.substr(posDec+8,7) ) >> deroAngle;
+		istringstream ( message.substr(posDero+8,7) ) >> deroAngle;
 		deroDifference = deroAngle - parallacticAngle();
 		positionAngle = deroAngle - parallacticAngle() + doubleParams["referencePA"];
 		cout << "Dero:" << deroAngle << endl;
