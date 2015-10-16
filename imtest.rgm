@@ -5,6 +5,7 @@ HWPBand 0
 HWPGroupNum 1
 HWPMode 0
 HWPPairNum 1
+HWPSpeed 300.0
 adc 0
 ampl 1
 bin 1
@@ -16,7 +17,7 @@ imRight 512
 imTop 512
 light 1
 limitRTA 10
-mirrorMode 2
+mirrorMode 0
 numKin 10
 preamp 2
 shutter 1
@@ -31,7 +32,6 @@ HWPStart 0.000000
 HWPStep 90.000000
 RA 51.079200
 dec 49.861100
-dero 0.000000
 exp 0.100000
 mirrorBeamTime 10.000000
 author nobody
@@ -42,4 +42,5 @@ object none
 program none
 prtaname rta
 telescope 2.5m
-cfgfile /home/safonov/Camera/Sparkle/session5B.cfg
+cfgfile /stage5A/collim/session5B.cfg
+loadcfg

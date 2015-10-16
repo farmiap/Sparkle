@@ -2500,6 +2500,9 @@ double Regime::parallacticAngle()
 	double sidTime = ln_get_apparent_sidereal_time(JD)*15.0+observer.lng;
 	
 	double hourAngle = sidTime - object.ra;
+
+//	cout << " lng " << observer.lng << " lat " << observer.lat << endl;
+//	cout << " ra " << object.ra << " dec " << object.dec << endl;
 	
 	ln_get_hrz_from_equ(&object, &observer, JD, &hrz);
 	
@@ -2507,6 +2510,9 @@ double Regime::parallacticAngle()
 	double cosp = cos(hrz.az/RAD)*cos(hourAngle/RAD) + sin(hrz.az/RAD)*sin(hourAngle/RAD)*cos(observer.lat/RAD);
 	
 	double parAngle = atan2(sinp,cosp)*RAD;
+	
+//	cout << "az " << hrz.az << " alt " << hrz.alt << endl;
+//	cout << "ha " << hourAngle << " parAngle " << parAngle << endl;
 	
 	return parAngle;
 }
@@ -2842,8 +2848,8 @@ int Regime::getObjectFromOCS()
 			}
 			if (posDec>0)
 			{
-				doubleParams["Dec"] = DecstringToDouble(message.substr(posDec+7,10));
-				cout << "Dec:" << doubleParams["Dec"] << endl;
+				doubleParams["dec"] = DecstringToDouble(message.substr(posDec+7,10));
+				cout << "dec:" << doubleParams["dec"] << endl;
 			}
 		}
 		else
