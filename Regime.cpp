@@ -1213,61 +1213,6 @@ int Regime::apply()
 	}
 	unsigned int status = DRV_SUCCESS;
 
-	if ( withDetector )
-	{
-		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
-		{
-			status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
-		}
-
-		if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
-
-		if ( status == DRV_SUCCESS ) status = GetDetector(&detWidth,&detHeight);
-		if ( status == DRV_SUCCESS ) status = SetShutter(1,(intParams["shutter"]==1)?1:2,50,50);
-		if ( status == DRV_SUCCESS ) status = SetFrameTransferMode(intParams["ft"]);
-		if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
-		if ( status == DRV_SUCCESS ) status = SetReadMode(4); // image
-		if ( status == DRV_SUCCESS ) status = SetExposureTime((float)doubleParams["exp"]);
-		if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["adc"]);
-		if ( status == DRV_SUCCESS ) status = SetHSSpeed(intParams["ampl"],intParams["horSpeed"]);
-		if ( status == DRV_SUCCESS ) status = SetPreAmpGain(intParams["preamp"]);
-		if ( status == DRV_SUCCESS ) status = SetVSSpeed(intParams["vertSpeed"]);
-		if ( status == DRV_SUCCESS ) status = SetVSAmplitude(intParams["vertAmpl"]);
-		if ( intParams["ampl"] == 0 )
-		{
-			if ( intParams["EMGain"] < 2 )
-			{
-				if ( status == DRV_SUCCESS ) status = SetEMGainMode(0);
-				if ( status == DRV_SUCCESS ) status = SetEMCCDGain(0);
-			}
-			else
-			{
-				if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMGain"] > 300);
-				if ( status == DRV_SUCCESS ) status = SetEMGainMode(3);
-				if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
-			}
-		}
-		if ( intParams["ampl"] == 0 )
-		{
-			if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
-		}
-		else
-		{
-			// for conv amplifier image X axis is switched
-			if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],detWidth-intParams["imRight"]+1,detWidth-intParams["imLeft"]+1,intParams["imBottom"],intParams["imTop"]);
-		}
-	}
-
-	if ( status == DRV_SUCCESS )
-	{
-		active = TRUE;
-		cout << "detector regime has been set successfully " << status << endl;
-	}
-	else
-	{
-		cout << "error: detector regime application failed " << status << endl;
-		return 0;
-	}
 
 	int HWPRotationStatus = 0;
 
@@ -1376,6 +1321,63 @@ int Regime::apply()
 //		cout << "ADC1 angle: " << ADCprismAngle1 << " ADC2 angle: " << ADCprismAngle2 << endl;
 	}
 
+	
+	if ( withDetector )
+	{
+		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
+		{
+			status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
+		}
+		
+		if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
+		
+		if ( status == DRV_SUCCESS ) status = GetDetector(&detWidth,&detHeight);
+		if ( status == DRV_SUCCESS ) status = SetShutter(1,(intParams["shutter"]==1)?1:2,50,50);
+		if ( status == DRV_SUCCESS ) status = SetFrameTransferMode(intParams["ft"]);
+		if ( status == DRV_SUCCESS ) status = SetTriggerMode(0); // internal trigger
+			if ( status == DRV_SUCCESS ) status = SetReadMode(4); // image
+				if ( status == DRV_SUCCESS ) status = SetExposureTime((float)doubleParams["exp"]);
+				if ( status == DRV_SUCCESS ) status = SetADChannel(intParams["adc"]);
+				if ( status == DRV_SUCCESS ) status = SetHSSpeed(intParams["ampl"],intParams["horSpeed"]);
+				if ( status == DRV_SUCCESS ) status = SetPreAmpGain(intParams["preamp"]);
+				if ( status == DRV_SUCCESS ) status = SetVSSpeed(intParams["vertSpeed"]);
+				if ( status == DRV_SUCCESS ) status = SetVSAmplitude(intParams["vertAmpl"]);
+				if ( intParams["ampl"] == 0 )
+				{
+					if ( intParams["EMGain"] < 2 )
+					{
+						if ( status == DRV_SUCCESS ) status = SetEMGainMode(0);
+						if ( status == DRV_SUCCESS ) status = SetEMCCDGain(0);
+					}
+					else
+					{
+						if ( status == DRV_SUCCESS ) status = SetEMAdvanced(intParams["EMGain"] > 300);
+						if ( status == DRV_SUCCESS ) status = SetEMGainMode(3);
+						if ( status == DRV_SUCCESS ) status = SetEMCCDGain(intParams["EMGain"]);
+					}
+				}
+				if ( intParams["ampl"] == 0 )
+				{
+					if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
+				}
+				else
+				{
+					// for conv amplifier image X axis is switched
+					if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],detWidth-intParams["imRight"]+1,detWidth-intParams["imLeft"]+1,intParams["imBottom"],intParams["imTop"]);
+				}
+	}
+	
+	if ( status == DRV_SUCCESS )
+	{
+		active = TRUE;
+		cout << "detector regime has been set successfully " << status << endl;
+	}
+	else
+	{
+		cout << "error: detector regime application failed " << status << endl;
+		return 0;
+	}
+	
 	
 	return HWPRotationStatus;
 }
@@ -1863,7 +1865,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	// Finally we write additional keywords into specially created empty HDU.
 	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, MIRRMODE, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
 	
-	if ( stringParams["fitsname"] == "auto" )
+	if ( ( stringParams["fitsname"] == "auto" ) && ( doSpool == 1 ) )
 	{
 		rename((char*)pathes.getSpoolPathSuff(),(char*)pathes.getAutopathSuff());
 	}
