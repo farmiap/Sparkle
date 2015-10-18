@@ -63,8 +63,6 @@ const char* Pathes::getAutopathSuff()
 	gettimeofday(&tv, NULL);
 	nowtime = tv.tv_sec;
 	nowtm = gmtime(&nowtime);
-	if ( nowtm->tm_hour < 12 )
-		tv.tv_sec = tv.tv_sec-86400;
 	nowtime = tv.tv_sec;
 	nowtm = gmtime(&nowtime);
 	strftime(tmbuf, sizeof tmbuf, "%Y%m%d%H%M%S", nowtm);

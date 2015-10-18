@@ -2466,8 +2466,8 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 		} else {
 			currentDero = doubleParams["dero"];
 		}
-		angle1 = doubleParams["referencePA"] + currentDero - 90.0 + deltaChi;
-		angle2 = doubleParams["referencePA"] + currentDero + 90.0 - deltaChi;
+		angle1 = doubleParams["referencePA"] + currentDero + 90.0 + deltaChi;
+		angle2 = doubleParams["referencePA"] + currentDero - 90.0 - deltaChi;
 	}
 		
 	while ( angle1 > 360.0 )
