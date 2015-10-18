@@ -2877,6 +2877,8 @@ int Regime::getObjectFromOCS()
 		istringstream ( message.substr(posDero+8,7) ) >> deroAngle;
 		deroDifference = deroAngle - parallacticAngle();
 		positionAngle = deroAngle - parallacticAngle() + doubleParams["referencePA"];
+		while (positionAngle > 360) positionAngle -= 360.0;
+		while (positionAngle < 0) positionAngle += 360.0;
 		cout << "Dero:" << deroAngle << endl;
 		cout << "positionAngle:" << positionAngle << endl;
 	}
@@ -2989,6 +2991,12 @@ double DecstringToDouble(string inputstring)
 	{
 		int deg,min;
 		double sec;
+		
+		// remove double minuses (OCS issue)
+		size_t dMinusPos = Dectokens[0].find("--");
+
+		if ( dMinusPos != string::npos ) Dectokens[0].replace(dMinusPos, 2, "-");
+	
 		if ( is_integer( Dectokens[0] ) )
 			istringstream ( Dectokens[0] ) >> deg;
 		else
@@ -3002,6 +3010,10 @@ double DecstringToDouble(string inputstring)
 		else
 			cout << "wrong sec format" << endl;
 
+		// remove sign from min and sec (OCS issue)
+		if (min<0) min = min*-1;
+		if (sec<0) sec = sec*-1;
+		
 		if ( Dectokens[0].compare(0,1,"-") == 0 )
 		{
 			dec = (double)deg - (double)min/60.0 - sec/3600.0;
