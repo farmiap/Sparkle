@@ -2386,6 +2386,10 @@ void Regime::addAuxiliaryHDU()
 		fits_update_card(fptr, "HWPANGLE", card, & status);
 	}
 
+        sprintf(newcard,"SHUTTER = %d",intParams["shutter"]);
+        fits_parse_template(newcard, card, &keytype, &status);
+        fits_update_card(fptr, "SHUTTER", card, & status);
+
 	double RONSigma[3];
 	double sensitiv[3];
 	if (intParams["adc"] == 0) // 14-bit
