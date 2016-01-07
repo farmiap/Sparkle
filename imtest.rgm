@@ -36,11 +36,11 @@ exp 0.100000
 mirrorBeamTime 10.000000
 author nobody
 filter empty
-fitsdir /stage5A/collim/
+fitsdir /home/safonov/Camera/Sparkle/test/
 fitsname test
 object none
 program none
 prtaname rta
 telescope 2.5m
-cfgfile /stage5A/collim/session5B.cfg
+cfgfile session5B.cfg
 loadcfg

@@ -43,7 +43,11 @@ int StandaRotationStage::setSpeed(double _speed)
 		cout << "error getting engine settings: " << error_string( result ) << endl;
 		return 0;
 	}
-	engine_settings.NomSpeed = (int)(_speed/convSlope);
+	
+	int newSpeed = (int)(_speed/convSlope);
+	engine_settings.NomSpeed = newSpeed;
+	cout << "engine speed (steps/sec) " << newSpeed << ", eee " << convSlope << endl;
+
 	if ((result = set_engine_settings( device, &engine_settings )) != result_ok)
 	{
 		cout << "error setting engine settings: " << error_string( result ) << endl;

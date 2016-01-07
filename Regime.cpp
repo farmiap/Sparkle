@@ -140,9 +140,11 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	// HWP switching
 	stringParams["HWPActuatorDevice"] = "";
 	doubleParams["HWPActuatorSpeed"] = 100.0;
-	intParams["HWPActuatorPushedPosition"] = 0.0; // position where actuator is pushed (steps)
+	intParams["HWPActuatorPushedPosition1"] = 0.0; // position where actuator is pushed, motion #1 (steps)
+	intParams["HWPActuatorPushedPosition2"] = 0.0; // position where actuator is pushed, motion #2 (steps)
 	doubleParams["HWPSwitchingAngle"] = 0.0; // start position of HWP rotator before performing switch, degrees
-	doubleParams["HWPSwitchingMotion"] = 0.0; // motion of HWP rotator before performing switch, degrees 
+	doubleParams["HWPSwitchingMotion1"] = 0.0; // motion of HWP rotator before performing switch, motion #1, degrees 
+	doubleParams["HWPSwitchingMotion2"] = 0.0; // motion of HWP rotator before performing switch, motion #2, degrees 
 	doubleParams["HWPSwitchingSpeed"] = 20.0; // speed of motion of HWP rotator performing switch, degrees/sec
 	intParams["HWPBand"] = 0; // current HWP band
 	
@@ -267,6 +269,8 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	ADCprismAngle2 = -1.0;
 	deroDifference = 0.0;
 	positionAngle = 0.0;
+	
+	HWPBand = 0;
 	
 	struct timezone tz;
 	gettimeofday(&prevRTATime,&tz);
@@ -983,12 +987,19 @@ int Regime::validate()
 		return 0;
 	}
 
-	if ( intParams["HWPActuatorPushedPosition"] > 0 )
+	if ( intParams["HWPActuatorPushedPosition1"] > 0 )
 	{
 		cout << "HWP actuator pushed position should be negative, validation failed" << endl;
 		return 0;
 	}
 
+	if ( intParams["HWPActuatorPushedPosition2"] > 0 )
+	{
+		cout << "HWP actuator pushed position should be negative, validation failed" << endl;
+		return 0;
+	}
+
+	
 	if ( ( doubleParams["HWPSwitchingSpeed"] < 0 ) || ( doubleParams["HWPSwitchingSpeed"] > 120 ) )
 	{
 		cout << "HWP switching speed position should be positive, and less than 120 deg/sec, validation failed" << endl;
@@ -1160,9 +1171,11 @@ void Regime::commandHintsFill()
 
 	commandHints["HWPActuatorDevice"]   = "HWP actuator device id (e.g. /dev/ximc/00000367)";
 	commandHints["HWPActuatorSpeed"]   = "HWP actuator speed (steps/sec) > 0.0";
-	commandHints["HWPActuatorPushedPosition"]   = "HWP actuator pushed position (steps) < 0";
+	commandHints["HWPActuatorPushedPosition1"]   = "HWP actuator pushed position (steps) < 0, motion #1";
+	commandHints["HWPActuatorPushedPosition2"]   = "HWP actuator pushed position (steps) < 0, motion #2";
 	commandHints["HWPSwitchingAngle"] = "start position of HWP rotator before performing switch, degrees";
-	commandHints["HWPSwitchingMotion"] = "motion of HWP rotator before performing switch, degrees";
+	commandHints["HWPSwitchingMotion1"] = "motion of HWP rotator before performing switch, degrees, motion #1";
+	commandHints["HWPSwitchingMotion2"] = "motion of HWP rotator before performing switch, degrees, motion #2";
 	commandHints["HWPSwitchingSpeed"] = "speed of motion of HWP rotator performing switch, degrees/sec";
 	commandHints["HWPBand"] = "Current HWP code 0, 1, 2";
 	
@@ -2007,32 +2020,47 @@ bool Regime::printTimings()
 
 int Regime::switchHWP()
 {
+	int isMovingFlag = 1;
+	double currentAngle;
+
 	cout << "Setting initial position ... " << endl;
 
+	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSwitchingSpeed"]);
 	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingAngle"]);
 
-	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition"]);
+	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition1"]);
 
 	cout << "done." << endl;
 	
 	cout << "Switching ... " << endl;
 
-	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
-	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion"]);
-	int isMovingFlag = 1;
-	double currentAngle;
+//	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
+	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion1"]);
+	isMovingFlag = 1;
 	while (isMovingFlag)
 	{
 		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
 		usleep(100000);
 	}
+
+	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition2"]);
+	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion2"]);
+	isMovingFlag = 1;
+	while (isMovingFlag)
+	{
+		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
+		usleep(100000);
+	}
+
 	cout << "done." << endl;
-	HWPMotor->setSpeed(doubleParams["HWPSpeed"]);
+
+//	HWPMotor->setSpeed(doubleParams["HWPSpeed"]);
 	
 	cout << "Actuator push back ... " << endl;
 	HWPActuator->startMoveToPositionWait(0);
 	cout << "done." << endl;
 	
+	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"]);
 	
 	return 1;
 }
