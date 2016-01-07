@@ -55,6 +55,7 @@ public:
 	~RegimeContainer();
 	int procCommand(string command);
 	string currentRegimeName();
+	bool finalize(float startTemp);
 };
 
 #endif

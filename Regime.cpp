@@ -2146,10 +2146,10 @@ bool checkTempInside(double lowerLim, double upperLim)
 }
 
 
-bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirrorAct,int _withFilterMotor,int _withADCMotor1,int _withADCMotor2,StandaRotationStage *_HWPMotor,StandaActuator *_HWPActuator,StandaActuator *_mirrorActuator,StandaRotationStage *_filterMotor,StandaRotationStage *_ADCMotor1,StandaRotationStage *_ADCMotor2,float startTemp)
+bool Regime::finalize(float startTemp)
 {
 	int status = DRV_SUCCESS;
-	if ( _withDetector )
+	if ( withDetector )
 	{
 		if ( status == DRV_SUCCESS ) status = SetShutter(1,2,50,50);
 		if ( status != DRV_SUCCESS )
@@ -2161,42 +2161,45 @@ bool finalize(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirro
 
 		ShutDown();
 	}
-
+	
+	intParams["HWPBand"] = 0;
+	apply();
+	
 	cout << "Parking motors ... " << endl;
 	
 	cout << "HWP..." << flush;
-	if (_withHWPMotor) {
-		_HWPMotor->startMoveToAngleWait(0.0);
+	if (withHWPMotor) {
+		HWPMotor->startMoveToAngleWait(0.0);
 	}
 	cout << "done" << endl;
 	
 	cout << "HWP act..." << flush;
-	if (_withHWPAct) {
-		_HWPActuator->startMoveToPositionWait(0);
+	if (withHWPAct) {
+		HWPActuator->startMoveToPositionWait(0);
 	}
 	cout << "done" << endl;
 	
 	cout << "Mirror act..." << flush;
-	if (_withMirrorAct) {
-		_mirrorActuator->startMoveToPositionWait(0);
+	if (withMirrorAct) {
+		mirrorActuator->startMoveToPositionWait(0);
 	}
 	cout << "done" << endl;
 	
 	cout << "Filter..." << flush;
-	if (_withFilterMotor) {
-		_filterMotor->startMoveToAngleWait(0.0);
+	if (withFilterMotor) {
+		filterMotor->startMoveToAngleWait(0.0);
 	}
 	cout << "done" << endl;
 	
 	cout << "ADC motor1..." << flush;
-	if (_withADCMotor1) {
-		_ADCMotor1->startMoveToAngleWait(0.0);
+	if (withADCMotor1) {
+		ADCMotor1->startMoveToAngleWait(0.0);
 	}
 	cout << "done" << endl;
 	
 	cout << "ADC motor2..." << flush;
-	if (_withADCMotor2) {
-		_ADCMotor2->startMoveToAngleWait(0.0);
+	if (withADCMotor2) {
+		ADCMotor2->startMoveToAngleWait(0.0);
 	}
 	cout << "done" << endl;
 	

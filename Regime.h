@@ -130,7 +130,8 @@ public:
 	void testNCurses();
 	bool printTimings();
 	void setActive(bool flag);
-
+	bool finalize(float startTemp);
+	
 	void commandHintsFill();
 
 	void print();

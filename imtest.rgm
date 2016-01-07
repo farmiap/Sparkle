@@ -42,5 +42,5 @@ object none
 program none
 prtaname rta
 telescope 2.5m
-cfgfile session5B.cfg
+cfgfile session5C.cfg
 loadcfg

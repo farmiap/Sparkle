@@ -300,3 +300,10 @@ int RegimeContainer::procCommand(string command)
 	}
 	return answer;
 }
+
+bool RegimeContainer::finalize(float startTemp)
+{
+	regimes[currentName].finalize(startTemp);
+	return true;
+}
+
