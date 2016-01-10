@@ -35,6 +35,7 @@
 #define IMPROCRED 10
 #define RAD 57.2957795131
 #define ADCMARGIN 0.1
+#define MOTIONTIMEOUT 30
 
 using namespace std;
 
@@ -1953,6 +1954,12 @@ bool Regime::acquire()
 	augmentPrimaryHDU();
 	addAuxiliaryHDU();
 	
+	if ( stringParams["fitsname"] == "auto" )
+	{
+		rename((char*)pathes.getSpoolPathSuff(),(char*)pathes.getAutopathSuff());
+	}
+	
+	
 	return true;
 }
 
@@ -2037,19 +2044,45 @@ int Regime::switchHWP()
 //	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
 	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion1"]);
 	isMovingFlag = 1;
+	
+	struct timeval startTime;
+	struct timeval currTime;	
+	struct timezone tz;
+	double deltaTime;
+	gettimeofday(&startTime,&tz);
+	
 	while (isMovingFlag)
 	{
 		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
 		usleep(100000);
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "HWP switch, time for motion is over!" << endl;
+			break;
+		}
 	}
 
 	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition2"]);
 	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion2"]);
 	isMovingFlag = 1;
+	
+	gettimeofday(&startTime,&tz);
+	
 	while (isMovingFlag)
 	{
 		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
 		usleep(100000);
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "HWP switch, time for motion is over!" << endl;
+			break;
+		}
 	}
 
 	cout << "done." << endl;
