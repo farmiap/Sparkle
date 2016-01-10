@@ -241,7 +241,8 @@ int StandaRotationStage::startMoveToAngleWait(double targetAngle)
 		return 0;
 	}
 
-	
+	targetAngle = targetAngle-360.0*floor(targetAngle/360.0);
+
 	startMoveToAngle(targetAngle);
 		
 	int isMovingFlag=1;
@@ -277,6 +278,7 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 		cout << "no device: " << deviceName << endl;
 		return 0;
 	}
+
 
 	
 	if ( directionInverted )
