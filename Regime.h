@@ -24,6 +24,7 @@ enum
 enum
 {
 	ACQUIRE = 1,
+	ACQUIREPOL,
 	RUNTILLABORT,
 	GETTIMINGS,		
 	MAXFLUX,
@@ -127,6 +128,7 @@ public:
 	int apply();
 	bool runTillAbort(bool avImg, bool doSpool);
 	bool acquire();
+	bool acquirePol();
 	void testNCurses();
 	bool printTimings();
 	void setActive(bool flag);

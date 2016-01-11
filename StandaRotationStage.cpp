@@ -1,8 +1,10 @@
 #include "StandaRotationStage.h"
 #include <math.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #define ANGLEMARGIN 0.5
+#define MOTIONTIMEOUT 30
 
 using namespace std;
 
@@ -160,6 +162,12 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 	}
 	msec_sleep(300);
 
+	struct timeval startTime;
+	struct timeval currTime;	
+	struct timezone tz;
+	double deltaTime;
+	gettimeofday(&startTime,&tz);	
+		
 	do
 	{
 		if ((result = get_status( device, &state )) != result_ok)
@@ -167,6 +175,15 @@ int StandaRotationStage::initializeStage(string _deviceName, double _convSlope, 
 			cout << "error getting status: " << error_string( result ) << endl;
 			return 0;
 		}
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "device: " << deviceName  << " time for homing is over!" << endl;
+			break;
+		}
+		
 		msec_sleep(150);
 	} while ( state.MoveSts != 0 );
 
@@ -193,12 +210,12 @@ int StandaRotationStage::startContiniousMotion()
 	if ( directionInverted )
 	{
 		if ((result = command_left( device )) != result_ok)
-			cout << "error command move " << error_string( result ) << endl;
+			cout  << "device: " << deviceName  << "error command move " << error_string( result ) << endl;
 	}
 	else
 	{
 		if ((result = command_right( device )) != result_ok)
-			cout << "error command move " << error_string( result ) << endl;
+			cout  << "device: " << deviceName  << "error command move " << error_string( result ) << endl;
 	}
 	return 1;
 }
@@ -212,7 +229,7 @@ int StandaRotationStage::stopContiniousMotion()
 	}
 
 	if ((result = command_sstp( device )) != result_ok)
-		cout << "error command move " << error_string( result ) << endl;
+		cout  << "device: " << deviceName  << "error command stop " << error_string( result ) << endl;
 	return 1;
 }
 
@@ -224,19 +241,36 @@ int StandaRotationStage::startMoveToAngleWait(double targetAngle)
 		return 0;
 	}
 
-	
+	targetAngle = targetAngle-360.0*floor(targetAngle/360.0);
+
 	startMoveToAngle(targetAngle);
 		
 	int isMovingFlag=1;
 	double currentAngle=-999999999.9;
 	usleep(500000);
+	
+	struct timeval startTime;
+	struct timeval currTime;	
+	struct timezone tz;
+	double deltaTime;
+	gettimeofday(&startTime,&tz);	
+	
 	while ( isMovingFlag || ( !anglesProximityR(currentAngle,targetAngle,ANGLEMARGIN) ) )
 	{
 		getAngle(&isMovingFlag,&currentAngle);
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "device: " << deviceName  << " time for motion is over!" << endl;
+			return 0;
+		}
 		usleep(100000);
 	}
+	return 1;
 }
-	
+
 int StandaRotationStage::startMoveToAngle(double targetAngle)
 {
 	if (device == device_undefined)
@@ -245,13 +279,14 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 		return 0;
 	}
 
+
 	
 	if ( directionInverted )
 		targetAngle = 360.0 - targetAngle;
 	
 	if ((result = get_status( device, &state )) != result_ok)
 	{
-		cout << "error getting status: " << error_string( result ) << endl;
+		cout  << "device: " << deviceName  << "error getting status: " << error_string( result ) << endl;
 		return 0;
 	}
 	double cycle = 360.0/convSlope;
@@ -265,7 +300,7 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 //	cout << "move to pos " << pos << " upos " << uPos << endl;
 	
 	if ((result = command_move( device, pos, uPos )) != result_ok)
-		cout << "error command move " << error_string( result ) << endl;
+		cout  << "device: " << deviceName  << "error command move to angle " << error_string( result ) << endl;
 	return 1;
 }
 
@@ -284,7 +319,7 @@ int StandaRotationStage::startMoveByAngle(double deltaAngle)
 	int pos = (int)dpos;
 	int uPos = (int)(microstepFrac*(dpos-(double)pos));
 	if ((result = command_movr( device, pos, uPos )) != result_ok)
-		cout << "error command move " << error_string( result ) << endl;
+		cout  << "device: " << deviceName  << "error command move by angle " << error_string( result ) << endl;
 //	cout << "motion started" << endl;
 	return 1;
 }
@@ -300,7 +335,7 @@ int StandaRotationStage::getAngle(int *isMoving,double *angle)
 	
 	if ((result = get_status( device, &state )) != result_ok)
 	{
-		cout << "error getting status: " << error_string( result ) << endl;
+		cout  << "device: " << deviceName  << "error getting status: " << error_string( result ) << endl;
 		return 0;
 	}
 	double position = (double)state.CurPosition + ((double)state.uCurPosition)/(double)microstepFrac;

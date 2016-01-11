@@ -35,6 +35,7 @@
 #define IMPROCRED 10
 #define RAD 57.2957795131
 #define ADCMARGIN 0.1
+#define MOTIONTIMEOUT 30
 
 using namespace std;
 
@@ -109,6 +110,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["temp"] = -1.0;	    // temperature
 	intParams["EMGain"] = 1;      // EM gain
 
+	intParams["numPol"]  = 10;      // number of series in step polarimetry mode
 
 	intParams["imLeft"] = 1;        // image left side
 	intParams["imRight"] = 512;     // image right side
@@ -255,6 +257,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	pathesCommands["prtaname"] = PRTANAME;
 
 	actionCommands["acq"] = ACQUIRE;
+	actionCommands["acqp"] = ACQUIREPOL;
 	actionCommands["prta"] = RUNTILLABORT;
 	actionCommands["prtaf"] = MAXFLUX;
 	actionCommands["prtas"] = RTASPOOL;
@@ -312,6 +315,9 @@ int Regime::procCommand(string command)
 			{
 			case ACQUIRE:
 				acquire();
+				break;
+			case ACQUIREPOL:
+				acquirePol();
 				break;
 			case RUNTILLABORT:
 				runTillAbort(false,false);
@@ -1147,6 +1153,8 @@ void Regime::commandHintsFill()
 	commandHints["vertSpeed"] = "vertical clocking speed (0 - 0.3, 1 - 0.5, 2 - 0.9, 3 - 1.7, 4 - 3.3) mu s";
 	commandHints["vertAmpl"]= "vertical clocking voltage amplitude: 0 - 4";
 
+	commandHints["numPol"]  = "number of series in step polarimetry mode";
+		
 	commandHints["imLeft"]  = "image left side: 1-512";
 	commandHints["imRight"] = "image right side: 1-512";
 	commandHints["imBottom"]= "image bottom side: 1-512";
@@ -1213,6 +1221,7 @@ void Regime::commandHintsFill()
 	commandHints["winTop"]   = "window (star parameter determination) top side: 1-512";
 	
 	commandHints["acq"]         = "start acquisition";
+	commandHints["acqp"]         = "start acquisition in step pol regime";
 	commandHints["prta"]        = "start run till abort";
 }
 
@@ -1888,6 +1897,43 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	return true;
 }
 
+bool Regime::acquirePol()
+{
+	if ( !active )
+	{
+		cout << "This regime is not applied, run rapp" << endl;
+		return false;
+	}
+	
+	doubleParams["HWPStart"] = 0.0;
+	intParams["HWPMode"] = 0;
+	
+	double nextStepValue;
+	cout << "acq pol" << endl;
+
+	bool acqResult = false;
+	
+	for(int currentStepNumber = 1; currentStepNumber <= intParams["numPol"]; currentStepNumber++ )
+	{
+		cout << "HWP moves to angle: " << doubleParams["HWPStart"] << endl;
+		if ( withHWPMotor )
+			HWPMotor->startMoveToAngleWait(doubleParams["HWPStart"]);
+		
+		cout << "exposure" << endl;
+		if ( withDetector )
+			acqResult = acquire();
+		else
+			usleep(10000000);
+		cout << "done" << endl;
+		
+		if ( !acqResult ) break;
+		
+		nextStepValue = getNextStepValue(currentStepNumber,doubleParams["HWPStep"],intParams["HWPPairNum"],intParams["HWPGroupNum"]);
+		cout << "currentStep: " << currentStepNumber << " next step value: " << nextStepValue << endl;
+		doubleParams["HWPStart"] += nextStepValue;
+	}
+}
+
 bool Regime::acquire()
 {
 	if ( !active )
@@ -1927,11 +1973,16 @@ bool Regime::acquire()
 		return false;
 	}
 
+	bool aborted = false;
+
 	while ( 1 ) {
 		ch = getch();
 	        if ( (ch=='q') || (ch=='x') ) {
 			if ( status == DRV_SUCCESS ) status = AbortAcquisition();
+			{
+				aborted = true;
 				break;
+			}
 		}
 		else
 		{
@@ -1953,7 +2004,13 @@ bool Regime::acquire()
 	augmentPrimaryHDU();
 	addAuxiliaryHDU();
 	
-	return true;
+	if ( stringParams["fitsname"] == "auto" )
+	{
+		rename((char*)pathes.getSpoolPathSuff(),(char*)pathes.getAutopathSuff());
+	}
+	
+	
+	return !aborted;
 }
 
 void Regime::testNCurses()
@@ -2037,19 +2094,45 @@ int Regime::switchHWP()
 //	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
 	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion1"]);
 	isMovingFlag = 1;
+	
+	struct timeval startTime;
+	struct timeval currTime;	
+	struct timezone tz;
+	double deltaTime;
+	gettimeofday(&startTime,&tz);
+	
 	while (isMovingFlag)
 	{
 		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
 		usleep(100000);
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "HWP switch, time for motion is over!" << endl;
+			break;
+		}
 	}
 
 	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition2"]);
 	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion2"]);
 	isMovingFlag = 1;
+	
+	gettimeofday(&startTime,&tz);
+	
 	while (isMovingFlag)
 	{
 		HWPMotor->getAngle(&isMovingFlag,&currentAngle);
 		usleep(100000);
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "HWP switch, time for motion is over!" << endl;
+			break;
+		}
 	}
 
 	cout << "done." << endl;

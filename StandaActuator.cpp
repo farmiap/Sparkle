@@ -2,8 +2,10 @@
 #include "StandaRotationStage.h"
 #include <math.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #define POSITIONMARGIN 50
+#define MOTIONTIMEOUT 150
 
 using namespace std;
 
@@ -90,6 +92,12 @@ int StandaActuator::initializeActuator(string _deviceName, double _speed)
 	}
 	msec_sleep(300);
 
+	struct timeval startTime;
+	struct timeval currTime;	
+	struct timezone tz;
+	double deltaTime;
+	gettimeofday(&startTime,&tz);
+	
 	do
 	{
 		if ((result = get_status( device, &state )) != result_ok)
@@ -97,6 +105,16 @@ int StandaActuator::initializeActuator(string _deviceName, double _speed)
 			cout << "error getting status: " << error_string( result ) << endl;
 			return 0;
 		}
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		cout << deltaTime << endl;
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "device: " << deviceName  << " time for motion is over!" << endl;
+			return 0;
+		}
+		
 		msec_sleep(50);
 	} while ( state.MoveSts != 0 );
 
@@ -122,14 +140,47 @@ int StandaActuator::startMoveToPositionWait(int targetPosition)
 	
 	startMoveToPosition(targetPosition);
 		
-	int isMovingFlag=1;
-	int currentPosition=-1000000000;
+	int isMovingFlag;
+	int currentPosition=-1000000000;;
+	int startPosition;
 	usleep(500000);
+	
+	getPosition(&isMovingFlag,&startPosition);
+	isMovingFlag=1;
+	
+	struct timeval startTime;
+	struct timeval currTime;	
+	struct timezone tz;
+	double deltaTime;
+	gettimeofday(&startTime,&tz);	
+	
+	int percprev = 0;
+	int perc;
+	
+	cout << "motion:" << flush;
+	
 	while ( isMovingFlag || ( fabs(currentPosition-targetPosition) > POSITIONMARGIN ) )
 	{
 		getPosition(&isMovingFlag,&currentPosition);
+		
+		gettimeofday(&currTime,&tz);	
+		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		
+		perc = floor(10*fabs((double)(currentPosition-startPosition)/(double)(targetPosition-startPosition)));
+		if (perc > percprev) 
+		{
+			cout << "." << flush;
+			percprev = perc;
+		}
+//		cout << "passed: " << 100.0*(1.0-fabs((double)(targetPosition-currentPosition)/(double)(targetPosition-startPosition))) << "%, time:" << deltaTime << endl;
+		if ( deltaTime > MOTIONTIMEOUT )
+		{
+			cout  << "device: " << deviceName  << " time for motion is over!" << endl;
+			return 0;
+		}
 		usleep(100000);
 	}
+	return 1;
 }
 
 int StandaActuator::startMoveToPosition(int targetPosition)
@@ -142,7 +193,7 @@ int StandaActuator::startMoveToPosition(int targetPosition)
 	
 	if ((result = get_status( device, &state )) != result_ok)
 	{
-		cout << "error getting status: " << error_string( result ) << endl;
+		cout << "device: " << deviceName << " error getting status: " << error_string( result ) << endl;
 		return 0;
 	}
 
@@ -162,7 +213,7 @@ int StandaActuator::getPosition(int *isMoving,int *position)
 
 	if ( (result = get_status( device, &state )) != result_ok )
 	{
-		cout << "error getting status: " << error_string( result ) << endl;
+		cout << "device: " << deviceName  << "error getting status: " << error_string( result ) << endl;
 		return 0;
 	}
 	*position = (int)state.CurPosition;
