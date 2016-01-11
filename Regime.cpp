@@ -145,6 +145,10 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["HWPActuatorPushedPosition1"] = 0.0; // position where actuator is pushed, motion #1 (steps)
 	intParams["HWPActuatorPushedPosition2"] = 0.0; // position where actuator is pushed, motion #2 (steps)
 	doubleParams["HWPSwitchingAngle"] = 0.0; // start position of HWP rotator before performing switch, degrees
+	doubleParams["HWPSwitchingPosition1"] = 184.0; // motion of HWP rotator before performing switch, motion #1, degrees 
+	doubleParams["HWPSwitchingPosition2"] = 210.0; // motion of HWP rotator before performing switch, motion #1, degrees 
+	doubleParams["HWPSwitchingPosition3"] = 130.0; // motion of HWP rotator before performing switch, motion #1, degrees 
+	
 	doubleParams["HWPSwitchingMotion1"] = 0.0; // motion of HWP rotator before performing switch, motion #1, degrees 
 	doubleParams["HWPSwitchingMotion2"] = 0.0; // motion of HWP rotator before performing switch, motion #2, degrees 
 	doubleParams["HWPSwitchingSpeed"] = 20.0; // speed of motion of HWP rotator performing switch, degrees/sec
@@ -1254,18 +1258,18 @@ int Regime::apply()
 		{
 			if ( HWPBand == 0 )
 			{
-				if ( intParams["HWPBand"] == 1 ) switchHWP();
-				if ( intParams["HWPBand"] == 2 ) {switchHWP();switchHWP();}
+				if ( intParams["HWPBand"] == 1 ) switchHWP(0.0);
+				if ( intParams["HWPBand"] == 2 ) {switchHWP(0.0);switchHWP(1.0);}
 			}
 			if ( HWPBand == 1 )
 			{
-				if ( intParams["HWPBand"] == 2 ) switchHWP();
-				if ( intParams["HWPBand"] == 0 ) {switchHWP();switchHWP();}
+				if ( intParams["HWPBand"] == 2 ) switchHWP(1.0);
+				if ( intParams["HWPBand"] == 0 ) {switchHWP(0.0);switchHWP(0.0);}
 			}
 			if ( HWPBand == 2 )
 			{
-				if ( intParams["HWPBand"] == 0 ) switchHWP();
-				if ( intParams["HWPBand"] == 1 ) {switchHWP();switchHWP();}
+				if ( intParams["HWPBand"] == 0 ) switchHWP(0.0);
+				if ( intParams["HWPBand"] == 1 ) {switchHWP(0.0);switchHWP(0.0);}
 			}
 			HWPBand = intParams["HWPBand"];
 		}
@@ -2075,7 +2079,7 @@ bool Regime::printTimings()
 	return ( status == DRV_SUCCESS );
 }
 
-int Regime::switchHWP()
+int Regime::switchHWP(double posShift)
 {
 	int isMovingFlag = 1;
 	double currentAngle;
@@ -2083,16 +2087,24 @@ int Regime::switchHWP()
 	cout << "Setting initial position ... " << endl;
 
 	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSwitchingSpeed"]);
-	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingAngle"]);
-
-	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition1"]);
-
 	cout << "done." << endl;
-	
+
 	cout << "Switching ... " << endl;
+	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingPosition1"]);
+	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition1"]);
+	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingPosition2"]);
+	HWPActuator->startMoveToPositionWait(0);
+	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingPosition3"]);
+	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition2"]);
+	HWPMotor->startMoveToAngleWait(doubleParams["HWPSwitchingPosition1"]+posShift);
+//	HWPActuator->startMoveToPositionWait(intParams["HWPActuatorPushedPosition1"]);
+
+	
 
 //	HWPMotor->setSpeed(doubleParams["HWPSwitchingSpeed"]);
-	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion1"]);
+	
+	
+/*	HWPMotor->startMoveByAngle(doubleParams["HWPSwitchingMotion1"]);
 	isMovingFlag = 1;
 	
 	struct timeval startTime;
@@ -2134,7 +2146,7 @@ int Regime::switchHWP()
 			break;
 		}
 	}
-
+*/
 	cout << "done." << endl;
 
 //	HWPMotor->setSpeed(doubleParams["HWPSpeed"]);

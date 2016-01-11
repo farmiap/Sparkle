@@ -106,7 +106,7 @@ private:
 	struct timeval prevRTATime;
 	struct timeval prevExpTime;
 	
-	int switchHWP();
+	int switchHWP(double posShift);
 
 	void printRegimeBlock(string name,int vshift);
 	void printRTABlock();

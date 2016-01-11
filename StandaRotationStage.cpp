@@ -261,6 +261,7 @@ int StandaRotationStage::startMoveToAngleWait(double targetAngle)
 		
 		gettimeofday(&currTime,&tz);	
 		deltaTime = (double)(currTime.tv_sec - startTime.tv_sec) + 1e-6*(double)(currTime.tv_usec - startTime.tv_usec);
+		cout << deltaTime << " " << currentAngle << " " << targetAngle << endl;
 		if ( deltaTime > MOTIONTIMEOUT )
 		{
 			cout  << "device: " << deviceName  << " time for motion is over!" << endl;
