@@ -1,5 +1,6 @@
 #include <cstdio>
-#include <fitsio.h>
+#include "/home/safonov/cfitsio/include/fitsio.h"
+//#include <fitsio.h>
 #include <sys/stat.h>
 #include <ncurses.h>
 
@@ -216,6 +217,19 @@ void writeMirrorIntervalsToASCIITableFITS(char* filename, vector<vector<int> > d
 	free(col1array);
 	free(col2array);
 	free(col3array);
+	
+	free(ttype[0]);
+	free(ttype[1]);
+	free(ttype[2]);
+
+	free(tform[0]);
+	free(tform[1]);
+	free(tform[2]);
+	
+	free(tunit[0]);
+	free(tunit[1]);
+	free(tunit[2]);
+	
 	return;
 }
 
