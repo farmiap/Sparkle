@@ -9,8 +9,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
+#include <exception>
 #include "atmcdLXd.h"
-#include <fitsio.h>
+//#include <fitsio.h>
+#include "/home/safonov/cfitsio/include/fitsio.h"
+//#include "/home/safonov/cfitsio/include/fitsio.h"
 
 #include <vector>
 #include <iterator>
@@ -109,7 +112,8 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["vertAmpl"] = 3;      // vertical clocking voltage amplitude 0 - 4
 	intParams["temp"] = -1.0;	    // temperature
 	intParams["EMGain"] = 1;      // EM gain
-
+	intParams["tempStab"] = 1;	    // temperature
+	
 	intParams["numPol"]  = 10;      // number of series in step polarimetry mode
 
 	intParams["imLeft"] = 1;        // image left side
@@ -1302,7 +1306,7 @@ int Regime::apply()
 			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosFinder"]);
 			break;
 		case MIRRORAUTO:
-			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosOff"]);
+			mirrorActuator->startMoveToPositionWait(intParams["mirrorPosLinpol"]);
 			break;
 		default :
 			cout << "This is not normal. Validation didn't do its work." << endl;
@@ -1350,9 +1354,11 @@ int Regime::apply()
 	
 	if ( withDetector )
 	{
-		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
-		{
-			status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
+		if ( intParams["tempStab"] == 1 ) {
+			if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
+			{
+				status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
+			}
 		}
 		
 		if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
@@ -1411,10 +1417,13 @@ int Regime::apply()
 bool Regime::runTillAbort(bool avImg, bool doSpool)
 {
 	cout << "entering RTA " << endl;
+
+	getObjectFromOCS();
+	
 	if ( !active )
 	{
-		cout << "This regime is not applied, run rapp" << endl;
-		return false;
+		cout << "This regime is not applied. Applying" << endl;
+		apply();
 	}
 
 	if ( doubleParams["exp"] > 2.0 )
@@ -1858,7 +1867,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	{
 		mirrorMotion.print();
 		cout << "Mirror reaching final position ... " << endl;
-		mirrorActuator->startMoveToPositionWait(intParams["mirrorPosOff"]);
+		mirrorActuator->startMoveToPositionWait(intParams["mirrorPosLinpol"]);
 		cout << "Done." << endl;
 	}
 	
@@ -1903,10 +1912,13 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 bool Regime::acquirePol()
 {
+	
+	getObjectFromOCS();
+	
 	if ( !active )
 	{
-		cout << "This regime is not applied, run rapp" << endl;
-		return false;
+		cout << "This regime is not applied. Applying" << endl;
+		apply();
 	}
 	
 	doubleParams["HWPStart"] = 0.0;
@@ -1940,10 +1952,12 @@ bool Regime::acquirePol()
 
 bool Regime::acquire()
 {
+	getObjectFromOCS();
+		
 	if ( !active )
 	{
-		cout << "This regime is not applied, run rapp" << endl;
-		return false;
+		cout << "This regime is not applied. Applying" << endl;
+		apply();
 	}
 
 	if ( !withDetector )
@@ -2012,7 +2026,6 @@ bool Regime::acquire()
 	{
 		rename((char*)pathes.getSpoolPathSuff(),(char*)pathes.getAutopathSuff());
 	}
-	
 	
 	return !aborted;
 }
@@ -2303,7 +2316,11 @@ bool Regime::finalize(float startTemp)
 
 void Regime::augmentPrimaryHDU()
 {
-//	cout << "Start augmenting primary HDU" << endl;
+	float version; 
+	fits_get_version(&version);
+
+	
+	cout << "FITSIO ver: " << version << "Start augmenting primary HDU of fits:" << (char*)pathes.getSpoolPathSuff() << endl;
 	fitsfile *fptr;
 	int status = 0, keytype = 0;
 	char card[FLEN_CARD],newcard[FLEN_CARD];
@@ -2312,7 +2329,7 @@ void Regime::augmentPrimaryHDU()
 	if ( stat((char*)pathes.getSpoolPathSuff(), &buffer) == 0 )
 	{	
 		if ( fits_open_file(&fptr, (char*)pathes.getSpoolPathSuff(), READWRITE, &status) )
-		printerror( status );
+			printerror( status );
 	}
 	else
 	{
@@ -2652,53 +2669,53 @@ double Regime::parallacticAngle()
 
 void doFits(int nx, int ny, char* filename,at_32 *data)
 {
-	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
-	int status, ii, jj;
-	long  fpixel, nelements;
-	long *array[ny];
 
-	int bitpix   =  LONG_IMG; 
-	long naxis    =   2;  /* 2-dimensional image                            */
-	long naxes[2] = { nx, ny};   /* image is nx pixels wide by ny rows */
+		fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
+		int status, ii, jj;
+		long  fpixel, nelements;
+		long *array[ny];
+
+		int bitpix   =  LONG_IMG; 
+		long naxis    =   2;  /* 2-dimensional image                            */
+		long naxes[2] = { nx, ny};   /* image is nx pixels wide by ny rows */
 
     /* allocate memory for the whole image */
-	array[0] = (long *)malloc( naxes[0] * naxes[1] * sizeof(long) );
+		array[0] = (long *)malloc( naxes[0] * naxes[1] * sizeof(long) );
 
     /* initialize pointers to the start of each row of the image */
-	for( ii=1; ii<naxes[1]; ii++ )
-		array[ii] = array[ii-1] + naxes[0];
+		for( ii=1; ii<naxes[1]; ii++ )
+			array[ii] = array[ii-1] + naxes[0];
 
-	remove(filename);               /* Delete old file if it already exists */
+		remove(filename);               /* Delete old file if it already exists */
 
-	status = 0;         /* initialize status before calling fitsio routines */
+		status = 0;         /* initialize status before calling fitsio routines */
 
-	if (fits_create_file(&fptr, filename, &status)) /* create new FITS file */
-		printerror( status );           /* call printerror if error occurs */
+		if (fits_create_file(&fptr, filename, &status)) /* create new FITS file */
+			printerror( status );           /* call printerror if error occurs */
 
-	if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
-		printerror( status );
+		if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
+			printerror( status );
 
-	fpixel = 1;                               /* first pixel to write      */
-	nelements = naxes[0] * naxes[1];          /* number of pixels to write */
+		fpixel = 1;                               /* first pixel to write      */
+		nelements = naxes[0] * naxes[1];          /* number of pixels to write */
 		
-	for (jj = 0; jj < naxes[1]; jj++){
-		for (ii = 0; ii < naxes[0]; ii++) {
-			array[jj][ii] = data[ii+naxes[0]*jj];
-        	}
-	}
+		for (jj = 0; jj < naxes[1]; jj++){
+			for (ii = 0; ii < naxes[0]; ii++) {
+				array[jj][ii] = data[ii+naxes[0]*jj];
+	        	}
+		}
 
 
 /* write the array of unsigned integers to the FITS file */
-	if ( fits_write_img(fptr, TLONG, fpixel, nelements, array[0], &status) )
-		printerror( status );
+		if ( fits_write_img(fptr, TLONG, fpixel, nelements, array[0], &status) )
+			printerror( status );
 
-	free( array[0] );  /* free previously allocated memory */
+		free( array[0] );  /* free previously allocated memory */
 
-	if ( fits_close_file(fptr, &status) )                /* close the file */
-		printerror( status );
-
+		if ( fits_close_file(fptr, &status) )                /* close the file */
+			printerror( status );
 //	printf("FITS writed: %s\n",filename);
-
+	
 	return;
 }
 
@@ -3017,14 +3034,12 @@ int Regime::getObjectFromOCS()
 
 void printerror( int status)
 {
-    /*****************************************************/
-    /* Print out cfitsio error messages and exit program */
-    /*****************************************************/
 	if (status)
 	{
-		move(30,0);printw("cfitsio error %d", status);		
-		fits_report_error(stderr, status); /* print error report */
-		exit( status );    /* terminate the program, returning error status */
+//		move(30,0);printw("cfitsio error %d", status);	
+		cout << "cfitsio error:" << status << endl;
+//		fits_report_error(stderr, status); /* print error report */
+//		exit( status );    /* terminate the program, returning error status */
 	}
 	return;
 }
