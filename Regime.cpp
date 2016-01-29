@@ -280,6 +280,9 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	ADCprismAngle2 = -1.0;
 	deroDifference = 0.0;
 	positionAngle = 0.0;
+
+	cAccum = -1.0;
+	cKinetic = -1.0;
 	
 	HWPBand = 0;
 	
@@ -579,14 +582,12 @@ void Regime::printRegimeBlock(string name, int vshift)
 		int status = DRV_SUCCESS;
 		
 		float exposure;
-		float accum;
-		float kinetic;
 		
-		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &cAccum, &cKinetic);
 		move(line,col1name);printw("exp.act");
 		move(line,col1val); printw("%.5f s",exposure);line++;
 		move(line,col1name);printw("cycle");
-		move(line,col1val); printw("%.5f s",kinetic);line++;
+		move(line,col1val); printw("%.5f s",cKinetic);line++;
 	}
 	
 	
@@ -1354,11 +1355,9 @@ int Regime::apply()
 	
 	if ( withDetector )
 	{
-		if ( intParams["tempStab"] == 1 ) {
-			if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
-			{
-				status = (setTemp(intParams["temp"]))?DRV_SUCCESS:DRV_P1INVALID;
-			}
+		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
+		{
+			status = (setTemp(intParams["temp"],intParams["tempStab"]))?DRV_SUCCESS:DRV_P1INVALID;
 		}
 		
 		if ( status == DRV_SUCCESS ) cout << "temperature is ok, setting..." << endl;
@@ -1442,12 +1441,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	int status = DRV_SUCCESS;
 
 	float exposure;
-	float accum;
-	float kinetic;
 	
 	if ( withDetector)
 	{
-		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &cAccum, &cKinetic);
 	}
 	int width, height;
 	width = floor(((double)intParams["imRight"]-(double)intParams["imLeft"]+1)/(double)intParams["bin"]);
@@ -2080,14 +2077,12 @@ bool Regime::printTimings()
 
 	unsigned int status = DRV_SUCCESS;
 	float exposure;
-	float accum;
-	float kinetic;
 
 	cout << "acquisition timings:" << endl;
-	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &accum, &kinetic);
+	if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &cAccum, &cKinetic);
 	cout << "exposure: " << exposure << " s" << endl;
-	cout << "accumulation cycle time: " << accum << " s" << endl;
-	cout << "kinetic cycle time: " << kinetic << " s" << endl;
+	cout << "accumulation cycle time: " << cAccum << " s" << endl;
+	cout << "kinetic cycle time: " << cKinetic << " s" << endl;
 
 	return ( status == DRV_SUCCESS );
 }
@@ -2323,7 +2318,7 @@ void Regime::augmentPrimaryHDU()
 	cout << "FITSIO ver: " << version << "Start augmenting primary HDU of fits:" << (char*)pathes.getSpoolPathSuff() << endl;
 	fitsfile *fptr;
 	int status = 0, keytype = 0;
-	char card[FLEN_CARD],newcard[FLEN_CARD];
+	char card[FLEN_CARD],newcard[FLEN_CARD],value[FLEN_CARD];
 	// If file doesn't exist, what happens when we work without detector, create it with empty primary array
 	struct stat  buffer;
 	if ( stat((char*)pathes.getSpoolPathSuff(), &buffer) == 0 )
@@ -2344,32 +2339,32 @@ void Regime::augmentPrimaryHDU()
 			printerror( status );
 	}
 	
+	//forced update of ACT and KCT keywords, because detector doesn't write them
+	
+	fits_update_key(fptr, TFLOAT, "ACT     ", &cAccum, "",&status);
+        fits_update_key(fptr, TFLOAT, "KCT     ", &cKinetic, "",&status);   
+        	        
 	// replace unused technical keywords with seven basic keywords defining observation
-	strcpy(newcard,"TELESCOP = ");
-	strcat(newcard, stringParams["telescope"].c_str());
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "AVERAGINGFILTERMODE", card, & status);
+	fits_modify_name(fptr, "AVERAGINGFILTERMODE", "TELESCOP", &status);
+	strcpy(value, stringParams["telescope"].c_str());   
+	fits_update_key(fptr, TSTRING, "TELESCOP", value, "",&status);
 
-	strcpy(newcard,"INSTRUME = ");
-	strcat(newcard, stringParams["instrument"].c_str());
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "AVERAGINGFACTOR", card, & status);
-	
-	strcpy(newcard,"OBJECT = ");
-	strcat(newcard, stringParams["object"].c_str());
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "FRAMECOUNT", card, & status);
+        fits_modify_name(fptr, "AVERAGINGFACTOR", "INSTRUME", &status);
+        strcpy(value, stringParams["instrument"].c_str());  
+	fits_update_key(fptr, TSTRING, "INSTRUME", value, "",&status);
 
-	strcpy(newcard,"PROGID = ");
-	strcat(newcard, stringParams["program"].c_str());
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "USERTXT1", card, & status);
+        fits_modify_name(fptr, "FRAMECOUNT", "OBJECT", &status);    
+        strcpy(value, stringParams["object"].c_str());    
+	fits_update_key(fptr, TSTRING, "OBJECT", value, "",&status);
 
-	strcpy(newcard,"AUTHOR = ");
-	strcat(newcard, stringParams["author"].c_str());
-	fits_parse_template(newcard, card, &keytype, &status);
-	fits_update_card(fptr, "USERTXT2", card, & status);
-	
+        fits_modify_name(fptr, "USERTXT1", "PROGID", &status);    
+        strcpy(value, stringParams["program"].c_str());    
+	fits_update_key(fptr, TSTRING, "PROGID", value, "",&status);
+
+        fits_modify_name(fptr, "USERTXT2", "AUTHOR", &status);    
+        strcpy(value, stringParams["author"].c_str());    
+	fits_update_key(fptr, TSTRING, "AUTHOR", value, "",&status);
+
 	if ( intParams["tracking"] == 1 )
 	{
 		sprintf(newcard,"RA = %.4f",doubleParams["RA"]);

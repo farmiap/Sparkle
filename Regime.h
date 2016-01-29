@@ -98,6 +98,8 @@ private:
 	double ADCprismAngle1,ADCprismAngle2;
 	double deroDifference; // Value dero-parallactic. It is constant during given tracking session. Used for ADC calculation.
 	double positionAngle; // It is constant during given tracking session.
+
+	float cAccum,cKinetic;
 	
 	Pathes pathes;
 	map<string, long> pathesCommands;
