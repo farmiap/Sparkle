@@ -63,7 +63,7 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	ADCMotor1 = _ADCMotor1;
 	ADCMotor2 = _ADCMotor2;
 	
-//	intParams["plateMirror"] 0; // is image mirrored? (for ADC)
+	//	intParams["plateMirror"] 0; // is image mirrored? (for ADC)20160409192346.fits
 
 // general	
 	doubleParams["latitude"] = 0.0; // latitude of telescope, deg, positive is north
@@ -1245,6 +1245,30 @@ int Regime::apply()
 	unsigned int status = DRV_SUCCESS;
 
 
+	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] > 0 ) )
+	{
+		int ADCMotor1RotationStatus = 0;
+		int ADCMotor2RotationStatus = 0;
+		
+		ADCMotor1RotationStatus = ADCMotor1->initializeStage(stringParams["ADCMotor1Device"],doubleParams["ADCMotor1Slope"],doubleParams["ADCMotor1Intercept"],intParams["ADCMotor1Dir"],doubleParams["ADCMotor1Speed"]);
+		
+		ADCMotor2RotationStatus = ADCMotor2->initializeStage(stringParams["ADCMotor2Device"],doubleParams["ADCMotor2Slope"],doubleParams["ADCMotor2Intercept"],intParams["ADCMotor2Dir"],doubleParams["ADCMotor2Speed"]);
+
+		if ( intParams["ADCMode"] == ADCAUTO )
+		{
+			calculateADC(&ADCprismAngle1,&ADCprismAngle2);
+		
+			ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
+			ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
+		} else
+		{
+			ADCMotor1->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
+			ADCMotor2->startMoveToAngleWait(doubleParams["ADCMotor2Start"]);
+		}
+		
+//		cout << "ADC1 angle: " << ADCprismAngle1 << " ADC2 angle: " << ADCprismAngle2 << endl;
+	}
+
 	int HWPRotationStatus = 0;
 
 	if ( withHWPMotor )
@@ -1328,31 +1352,6 @@ int Regime::apply()
 		cout << "filter: " << currentFilterName << " pos: " << currentFilterPos << endl;
 	}
 
-	if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"] > 0 ) )
-	{
-		int ADCMotor1RotationStatus = 0;
-		int ADCMotor2RotationStatus = 0;
-		
-		ADCMotor1RotationStatus = ADCMotor1->initializeStage(stringParams["ADCMotor1Device"],doubleParams["ADCMotor1Slope"],doubleParams["ADCMotor1Intercept"],intParams["ADCMotor1Dir"],doubleParams["ADCMotor1Speed"]);
-		
-		ADCMotor2RotationStatus = ADCMotor2->initializeStage(stringParams["ADCMotor2Device"],doubleParams["ADCMotor2Slope"],doubleParams["ADCMotor2Intercept"],intParams["ADCMotor2Dir"],doubleParams["ADCMotor2Speed"]);
-
-		if ( intParams["ADCMode"] == ADCAUTO )
-		{
-			calculateADC(&ADCprismAngle1,&ADCprismAngle2);
-		
-			ADCMotor1->startMoveToAngleWait(ADCprismAngle1);
-			ADCMotor2->startMoveToAngleWait(ADCprismAngle2);
-		} else
-		{
-			ADCMotor1->startMoveToAngleWait(doubleParams["ADCMotor1Start"]);
-			ADCMotor2->startMoveToAngleWait(doubleParams["ADCMotor2Start"]);
-		}
-		
-//		cout << "ADC1 angle: " << ADCprismAngle1 << " ADC2 angle: " << ADCprismAngle2 << endl;
-	}
-
-	
 	if ( withDetector )
 	{
 		if ( !checkTempInside(intParams["temp"]-TEMP_MARGIN,intParams["temp"]+TEMP_MARGIN) )
@@ -1822,12 +1821,12 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		{
 			if (ADCmotionStarted)
 			{
-				HWPAngleContainer.addStatusAndAngle(frameCounter,1,ADC1Angle);
+				ADCAngleContainer.addStatusAndAngle(frameCounter,1,ADC2Angle);
 //					HWPisMovingPrev = 1;
 			}
 			else
 			{
-				HWPAngleContainer.addStatusAndAngle(frameCounter,(int)(ADC1isMoving!=0),ADC1Angle);
+				ADCAngleContainer.addStatusAndAngle(frameCounter,(int)(ADC1isMoving!=0),ADC2Angle);
 //					HWPisMovingPrev = HWPisMoving;
 			}
 		}
@@ -1869,10 +1868,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	}
 	
 	// First we write essential keywords into primary HDU header, substituting some unneccesary technical keywords. It is not possible to ADD keywords, this would very expensive in terms of time.
-	augmentPrimaryHDU(); // keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
+	if ( doSpool ) augmentPrimaryHDU(); // keywords: TELESCOP, INSTRUME, OBJECT, PROGRAM, AUTHOR, RA, DEC
 
 	// Then we add data on rotation of HWP (if any) and motion of Mirror (if any)
-	if ( withHWPMotor && (intParams["HWPMode"]==HWPSTEP) )
+	if ( doSpool && withHWPMotor && (intParams["HWPMode"]==HWPSTEP) )
 	{
 		cout << "writing HWP angle data" << endl;
 		HWPAngleContainer.convertToIntervals();
@@ -1880,22 +1879,22 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		HWPAngleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff(),"HWPINTERVALS");
 	}
 
-	if ( withADCMotor1 && withADCMotor2 && (intParams["ADCMode"]==ADCSTEP) )
+	if ( doSpool && withADCMotor1 && withADCMotor2 && (intParams["ADCMode"]==ADCSTEP) )
 	{
 		cout << "writing ADC angle data" << endl;
-		HWPAngleContainer.convertToIntervals();
-		HWPAngleContainer.print();
-		HWPAngleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff(),"ADCINTERVALS");
+		ADCAngleContainer.convertToIntervals();
+		ADCAngleContainer.print();
+		ADCAngleContainer.writeIntervalsToFits((char*)pathes.getSpoolPathSuff(),"ADCINTERVALS");
 	}
 
 	
-	if ( withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
+	if ( doSpool && withMirrorAct && ( intParams["mirrorMode"]==MIRRORAUTO )  )
 	{
 		mirrorMotion.writeIntervalsToFits((char*)pathes.getSpoolPathSuff());
 	}
 
 	// Finally we write additional keywords into specially created empty HDU.
-	addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, MIRRMODE, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
+	if ( doSpool ) addAuxiliaryHDU(); // keywords: LONGITUD, LATITUDE, ALTITUDE, APERTURE, SECONDAR, FOCUSSTA, REFERPA, PLATEMIR, MIRRMODE, ADCMODE, HWPMODE, HWPBAND, RONSIGMA
 	
 	if ( ( stringParams["fitsname"] == "auto" ) && ( doSpool == 1 ) )
 	{

@@ -15,7 +15,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	cout << "Sparkle: command-line tool to control iXon+897" << endl;
+	cout << "Welcome to Sparkle --- command-line tool to control SPeckle Polarimeter" << endl;
 
 	string command;
 
