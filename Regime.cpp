@@ -767,29 +767,29 @@ int Regime::validate()
 {
 	int synchroNum = -1;
 	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
-		if ( it->second == stringParams["synchro"] )
-			istringstream ( it->first.substr(7,1) ) >> synchroNum;
+		if ( it->first.size() == 12 )
+			if ( ( it->first.substr(0,7) == "synchro" ) && ( it->first.substr(8,4) == "Name" ) )
+				if ( it->second == stringParams["synchro"] )
+					istringstream ( it->first.substr(7,1) ) >> synchroNum;
+	
 		
-	if ( synchroNum < 0 )
+	if ( synchroNum >= 0 )
 	{
-		cout << "There is no such synchronization scheme" << endl;
-		return 0;
+		std::ostringstream ossS;
+
+		ossS << "synchro" << synchroNum << "Speed";
+		doubleParams["HWPSpeed"] = doubleParams[ossS.str()];
+		ossS.str("");
+
+		ossS << "synchro" << synchroNum << "Exp";
+		doubleParams["exp"] = doubleParams[ossS.str()];
+		ossS.str("");
+
+		ossS << "synchro" << synchroNum << "Height";
+		intParams["height"] = intParams[ossS.str()];
+		ossS.str("");
 	}
-		
-	std::ostringstream ossS;
-	
-	ossS << "synchro" << synchroNum << "Speed";
-	doubleParams["HWPSpeed"] = doubleParams[ossS.str()];
-	ossS.str("");
-	
-	ossS << "synchro" << synchroNum << "Exp";
-	doubleParams["exp"] = doubleParams[ossS.str()];
-	ossS.str("");
-	
-	ossS << "synchro" << synchroNum << "Height";
-	intParams["height"] = intParams[ossS.str()];
-	ossS.str("");
-	
+
 	if (!pathes.validate())
 	{
 		cout << "pathes validation failed" << endl;
