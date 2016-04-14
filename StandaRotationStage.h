@@ -28,7 +28,7 @@ public:
 	~StandaRotationStage();
 
 	void printDeviceName();
-	int initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double speed);
+	int initializeStage(string _deviceName, double _convSlope, double _convIntercept, int _dirInv, double speed, int forced);
 	int setSpeed(double _speed);
 	int startMoveToAngle(double deltaAngle);
 	int startMoveToAngleWait(double deltaAngle);

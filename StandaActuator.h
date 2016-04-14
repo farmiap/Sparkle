@@ -23,7 +23,7 @@ public:
 	~StandaActuator();
 
 	void printDeviceName();
-	int initializeActuator(string _deviceName, double speed);
+	int initializeActuator(string _deviceName, double speed, int forced);
 	int startMoveToPosition(int targetPosition);
 	int startMoveToPositionWait(int targetPosition);
 	int getPosition(int *isMoving,int *position);

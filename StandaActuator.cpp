@@ -31,9 +31,9 @@ void StandaActuator::printDeviceName()
 	cout << "Dev:" << deviceName << endl;
 }
 
-int StandaActuator::initializeActuator(string _deviceName, double _speed)
+int StandaActuator::initializeActuator(string _deviceName, double _speed, int forced)
 {
-	if ( (deviceName.compare(_deviceName)==0) && (_speed==speed) && (device!=device_undefined))
+	if ( (forced==0) && (deviceName.compare(_deviceName)==0) && (_speed==speed) && (device!=device_undefined))
 	{
 		cout << "Stage is already here, no need of initialization" << endl;
 		return 1;

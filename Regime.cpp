@@ -234,6 +234,14 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["synchro1Height"] = 0.0;
 	intParams["synchro2Height"] = 0.0;
 	intParams["synchro3Height"] = 0.0;
+
+	// setting this to 1 leads to unconditional homing of corresponding drive
+	intParams["ADCMotor1ForcedHome"] = 0;
+	intParams["ADCMotor2ForcedHome"] = 0;
+	intParams["HWPForcedHome"] = 0;
+	intParams["HWPActuatorForcedHome"] = 0;
+	intParams["filterForcedHome"] = 0;
+	intParams["mirrorForcedHome"] = 0;
 	
 	intParams["winLeft"] = 1;
 	intParams["winRight"] = 512;
@@ -1282,9 +1290,13 @@ int Regime::apply()
 		int ADCMotor1RotationStatus = 0;
 		int ADCMotor2RotationStatus = 0;
 		
-		ADCMotor1RotationStatus = ADCMotor1->initializeStage(stringParams["ADCMotor1Device"],doubleParams["ADCMotor1Slope"],doubleParams["ADCMotor1Intercept"],intParams["ADCMotor1Dir"],doubleParams["ADCMotor1Speed"]);
+		ADCMotor1RotationStatus = ADCMotor1->initializeStage(stringParams["ADCMotor1Device"],doubleParams["ADCMotor1Slope"],doubleParams["ADCMotor1Intercept"],intParams["ADCMotor1Dir"],doubleParams["ADCMotor1Speed"],intParams["ADCMotor1ForcedHome"]);
 		
-		ADCMotor2RotationStatus = ADCMotor2->initializeStage(stringParams["ADCMotor2Device"],doubleParams["ADCMotor2Slope"],doubleParams["ADCMotor2Intercept"],intParams["ADCMotor2Dir"],doubleParams["ADCMotor2Speed"]);
+		intParams["ADCMotor1ForcedHome"] = 0;
+		
+		ADCMotor2RotationStatus = ADCMotor2->initializeStage(stringParams["ADCMotor2Device"],doubleParams["ADCMotor2Slope"],doubleParams["ADCMotor2Intercept"],intParams["ADCMotor2Dir"],doubleParams["ADCMotor2Speed"],intParams["ADCMotor2ForcedHome"]);
+		
+		intParams["ADCMotor2ForcedHome"] = 0;
 
 		if ( intParams["ADCMode"] == ADCAUTO )
 		{
@@ -1305,15 +1317,19 @@ int Regime::apply()
 
 	if ( withHWPMotor )
 	{
-		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"]);
+		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"],intParams["HWPForcedHome"]);
+		
+		intParams["HWPForcedHome"] = 0;
 	}
 
 	int HWPActuatorStatus = 0;
 	
 	if ( withHWPAct && withHWPMotor ) 
 	{
-		HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"]);
+		HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"],intParams["HWPActuatorForcedHome"]);
 	
+		intParams["HWPActuatorForcedHome"] = 0;
+		
 		cout << "current band " << HWPBand << " desired band " << intParams["HWPBand"] << endl;
 		if ( HWPBand!=intParams["HWPBand"] ) 
 		{
@@ -1349,8 +1365,10 @@ int Regime::apply()
 	int mirrorActuatorStatus = 0;
 	if ( withMirrorAct ) 
 	{
-		mirrorActuatorStatus = mirrorActuator->initializeActuator(stringParams["mirrorDevice"],intParams["mirrorSpeed"]);
+		mirrorActuatorStatus = mirrorActuator->initializeActuator(stringParams["mirrorDevice"],intParams["mirrorSpeed"],intParams["mirrorForcedHome"]);
 
+		intParams["mirrorForcedHome"] = 0;
+		
 		switch ( intParams["mirrorMode"] )
 		{
 		case MIRROROFF:
@@ -1377,7 +1395,9 @@ int Regime::apply()
 	
 	if ( withFilterMotor )
 	{
-		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDir"],doubleParams["filterSpeed"]);
+		filterRotationStatus = filterMotor->initializeStage(stringParams["filterDevice"],doubleParams["filterSlope"],doubleParams["filterIntercept"],intParams["filterDir"],doubleParams["filterSpeed"],intParams["filterForcedHome"]);
+		
+		intParams["filterForcedHome"] = 0;
 		
 		filterMotor->startMoveToAngleWait(currentFilterPos);
 		
@@ -2125,7 +2145,7 @@ int Regime::switchHWP(double posShift)
 
 	cout << "Setting initial position ... " << endl;
 
-	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSwitchingSpeed"]);
+	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSwitchingSpeed"],1);
 	cout << "done." << endl;
 
 	cout << "Switching ... " << endl;
@@ -2194,7 +2214,7 @@ int Regime::switchHWP(double posShift)
 	HWPActuator->startMoveToPositionWait(0);
 	cout << "done." << endl;
 	
-	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"]);
+	HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"],1);
 	
 	return 1;
 }
