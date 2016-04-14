@@ -115,11 +115,11 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	intParams["tempStab"] = 1;	    // temperature
 	
 	intParams["numPol"]  = 10;      // number of series in step polarimetry mode
-
+	
 	intParams["imLeft"] = 1;        // image left side
-	intParams["imRight"] = 512;     // image right side
+	intParams["imWidth"] = 512;     // image width
 	intParams["imBottom"] = 1;      // image bottom side
-	intParams["imTop"] = 512;       // image top side
+	intParams["imHeight"] = 512;    // image height
 	intParams["bin"] = 1;		// binning: >=1
 	
 	doubleParams["exp"] = 0.1;      // exposure
@@ -215,6 +215,25 @@ Regime::Regime(int _withDetector,int _withHWPMotor,int _withHWPAct,int _withMirr
 	doubleParams["filter5Lambda"] = 0.0;
 	doubleParams["filter6Lambda"] = 0.0;
 	doubleParams["filter7Lambda"] = 0.0;
+	
+	// synchro schemes are used for polarimetry with rotating HWP
+	stringParams["synchro"] = ""; // Name of synchro scheme. Configurable, e.g. synchro0Name.
+	stringParams["synchro0Name"] = "";
+	stringParams["synchro1Name"] = "";
+	stringParams["synchro2Name"] = "";
+	stringParams["synchro3Name"] = "";
+	doubleParams["synchro0Speed"] = 0.0; // speed of HWP
+	doubleParams["synchro1Speed"] = 0.0;
+	doubleParams["synchro2Speed"] = 0.0;
+	doubleParams["synchro3Speed"] = 0.0;
+	doubleParams["synchro0Exp"] = 0.0; // exposure
+	doubleParams["synchro1Exp"] = 0.0;
+	doubleParams["synchro2Exp"] = 0.0;
+	doubleParams["synchro3Exp"] = 0.0;
+	intParams["synchro0Height"] = 0.0; // subframe height
+	intParams["synchro1Height"] = 0.0;
+	intParams["synchro2Height"] = 0.0;
+	intParams["synchro3Height"] = 0.0;
 	
 	intParams["winLeft"] = 1;
 	intParams["winRight"] = 512;
@@ -594,12 +613,12 @@ void Regime::printRegimeBlock(string name, int vshift)
 	line = 2 + vshift;
 	move(line,col2name);printw("left");
 	move(line,col2val); printw("%d pix",intParams["imLeft"]);line++;
-	move(line,col2name);printw("right");
-	move(line,col2val); printw("%d pix",intParams["imRight"]);line++;
 	move(line,col2name);printw("bottom");
 	move(line,col2val); printw("%d pix",intParams["imBottom"]);line++;
-	move(line,col2name);printw("top");
-	move(line,col2val); printw("%d pix",intParams["imTop"]);line++;
+	move(line,col2name);printw("width");
+	move(line,col2val); printw("%d pix",intParams["imWidth"]);line++;
+	move(line,col2name);printw("height");
+	move(line,col2val); printw("%d pix",intParams["imHeight"]);line++;
 	move(line,col2name);printw("binning");
 	move(line,col2val); printw("%d pix",intParams["bin"]);line++;
 	string ftModeString;
@@ -738,6 +757,31 @@ int Regime::saveToFile(string path,string name)
 
 int Regime::validate()
 {
+	int synchroNum = -1;
+	for(map<string, string>::iterator it = stringParams.begin();it != stringParams.end();++it)
+		if ( it->second == stringParams["synchro"] )
+			istringstream ( it->first.substr(7,1) ) >> synchroNum;
+		
+	if ( synchroNum < 0 )
+	{
+		cout << "There is no such synchronization scheme" << endl;
+		return 0;
+	}
+		
+	std::ostringstream ossS;
+	
+	ossS << "synchro" << synchroNum << "Speed";
+	doubleParams["HWPSpeed"] = doubleParams[ossS.str()];
+	ossS.str("");
+	
+	ossS << "synchro" << synchroNum << "Exp";
+	doubleParams["exp"] = doubleParams[ossS.str()];
+	ossS.str("");
+	
+	ossS << "synchro" << synchroNum << "Height";
+	intParams["height"] = intParams[ossS.str()];
+	ossS.str("");
+	
 	if (!pathes.validate())
 	{
 		cout << "pathes validation failed" << endl;
@@ -911,9 +955,9 @@ int Regime::validate()
 		return 0;
 	}
 
-	if (( intParams["imRight"] < 1 ) || ( intParams["imRight"] > 512 ))
+	if (( intParams["imWidth"] < 1 ) || ( intParams["imLeft"] + intParams["imWidth"] - 1 > 512 ))
 	{
-		cout << "image right side validation failed" << endl;
+		cout << "image width validation failed" << endl;
 		return 0;
 	}
 
@@ -923,21 +967,9 @@ int Regime::validate()
 		return 0;
 	}
 
-	if (( intParams["imTop"] < 1 ) || ( intParams["imTop"] > 512 ))
+	if (( intParams["imHeight"] < 1 ) || ( intParams["imBottom"] + intParams["imHeight"] - 1 > 512 ))
 	{
-		cout << "image top side validation failed" << endl;
-		return 0;
-	}
-
-	if ( intParams["imLeft"] >= intParams["imRight"] )
-	{
-		cout << "image has non-positive width, validation failed" << endl;
-		return 0;
-	}
-
-	if ( intParams["imBottom"] >= intParams["imTop"] )
-	{
-		cout << "image has non-positive height, validation failed" << endl;
+		cout << "image height validation failed" << endl;
 		return 0;
 	}
 
@@ -1165,9 +1197,9 @@ void Regime::commandHintsFill()
 	commandHints["numPol"]  = "number of series in step polarimetry mode";
 		
 	commandHints["imLeft"]  = "image left side: 1-512";
-	commandHints["imRight"] = "image right side: 1-512";
+	commandHints["imWidth"] = "image width: 1-512";
 	commandHints["imBottom"]= "image bottom side: 1-512";
-	commandHints["imTop"]   = "image top side: 1-512";
+	commandHints["imHeight"]   = "image height: 1-512";
 	commandHints["bin"]   = "binning: 1-64";
 	
 	commandHints["EMGain"]  = "EM gain: 1-1000";
@@ -1388,12 +1420,12 @@ int Regime::apply()
 				}
 				if ( intParams["ampl"] == 0 )
 				{
-					if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imRight"],intParams["imBottom"],intParams["imTop"]);
+					if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],intParams["imLeft"],intParams["imLeft"]+intParams["imWidth"]-1,intParams["imBottom"],intParams["imBottom"]+intParams["imHeight"]-1);
 				}
 				else
 				{
 					// for conv amplifier image X axis is switched
-					if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],detWidth-intParams["imRight"]+1,detWidth-intParams["imLeft"]+1,intParams["imBottom"],intParams["imTop"]);
+					if ( status == DRV_SUCCESS ) status = SetImage(intParams["bin"],intParams["bin"],detWidth-intParams["imLeft"]-intParams["imWidth"]+2,detWidth-intParams["imLeft"]+1,intParams["imBottom"],intParams["imTop"]);
 				}
 	}
 	
@@ -1446,8 +1478,8 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 		if ( status == DRV_SUCCESS ) status = GetAcquisitionTimings(&exposure, &cAccum, &cKinetic);
 	}
 	int width, height;
-	width = floor(((double)intParams["imRight"]-(double)intParams["imLeft"]+1)/(double)intParams["bin"]);
-	height = floor(((double)intParams["imTop"]-(double)intParams["imBottom"]+1)/(double)intParams["bin"]);
+	width = floor(((double)intParams["imWidth"])/(double)intParams["bin"]);
+	height = floor(((double)intParams["imHeight"])/(double)intParams["bin"]);
 	long datasize = width*height; // do not divide by binning, segm. fault instead!
 	long datasize2 = long(datasize/IMPROCRED); // create array smaller than main one, for purposes of processImage
 	
