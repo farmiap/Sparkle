@@ -2635,7 +2635,7 @@ void Regime::calculateADC(double *_angle1, double *_angle2)
 	
 	double gamma = currentFilterADCcoef*tan(zen/RAD);
 	 
-	double deltaChi=90.0;
+	double deltaChi=90.00;
 	
 	if (gamma<1)
 	{
