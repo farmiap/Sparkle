@@ -1313,23 +1313,14 @@ int Regime::apply()
 //		cout << "ADC1 angle: " << ADCprismAngle1 << " ADC2 angle: " << ADCprismAngle2 << endl;
 	}
 
-	int HWPRotationStatus = 0;
-
-	if ( withHWPMotor )
-	{
-		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"],intParams["HWPForcedHome"]);
-		
-		intParams["HWPForcedHome"] = 0;
-	}
-
 	int HWPActuatorStatus = 0;
-	
+
 	if ( withHWPAct && withHWPMotor ) 
 	{
 		HWPActuatorStatus = HWPActuator->initializeActuator(stringParams["HWPActuatorDevice"],doubleParams["HWPActuatorSpeed"],intParams["HWPActuatorForcedHome"]);
 	
 		intParams["HWPActuatorForcedHome"] = 0;
-		
+	
 		cout << "current band " << HWPBand << " desired band " << intParams["HWPBand"] << endl;
 		if ( HWPBand!=intParams["HWPBand"] ) 
 		{
@@ -1355,6 +1346,17 @@ int Regime::apply()
 	{
 		cout << "HWP band switching is not possible, HWP actuator or/and motor is off" << endl;
 	}	
+
+	int HWPRotationStatus = 0;
+
+	if ( withHWPMotor )
+	{
+		HWPRotationStatus = HWPMotor->initializeStage(stringParams["HWPDevice"],doubleParams["HWPSlope"],doubleParams["HWPIntercept"],intParams["HWPDir"],doubleParams["HWPSpeed"],intParams["HWPForcedHome"]);
+		
+		intParams["HWPForcedHome"] = 0;
+	}
+
+
 
 	if ( withHWPMotor && (intParams["HWPMode"] == HWPOFF) )
 	{

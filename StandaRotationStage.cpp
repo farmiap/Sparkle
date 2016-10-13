@@ -12,7 +12,7 @@ StandaRotationStage::StandaRotationStage()
 {
 	deviceName = "";
 	device = device_undefined;
-	microstepFrac = 8;
+	microstepFrac = 256;
 }
 
 StandaRotationStage::~StandaRotationStage()
@@ -293,6 +293,7 @@ int StandaRotationStage::startMoveToAngle(double targetAngle)
 	double cycle = 360.0/convSlope;
 
 	double dpos = convIntercept + targetAngle/convSlope;
+//	cout << "start moving to position:" << dpos << endl;
 	int pos = (int)dpos;
 	int uPos = (int)(microstepFrac*(dpos-(double)pos));
 
@@ -340,6 +341,7 @@ int StandaRotationStage::getAngle(int *isMoving,double *angle)
 		return 0;
 	}
 	double position = (double)state.CurPosition + ((double)state.uCurPosition)/(double)microstepFrac;
+//	cout << "position:" << state.CurPosition << "u:" << state.uCurPosition << "fr:" << microstepFrac << "p:" << position << endl;
 	*angle = (position - convIntercept)*convSlope;
 	*angle = *angle-360.0*floor(*angle/360.0);
 	if (directionInverted)
