@@ -1234,7 +1234,7 @@ void Regime::commandHintsFill()
 	commandHints["HWPSwitchingMotion1"] = "motion of HWP rotator before performing switch, degrees, motion #1";
 	commandHints["HWPSwitchingMotion2"] = "motion of HWP rotator before performing switch, degrees, motion #2";
 	commandHints["HWPSwitchingSpeed"] = "speed of motion of HWP rotator performing switch, degrees/sec";
-	commandHints["HWPBand"] = "Current HWP code 0, 1, 2";
+	commandHints["HWPBand"] = "Current HWP code 0 - red, 1 - knife, 2 - green";
 	
 	commandHints["light"] = "Calibration light should be off - 0 or on - 1";
 	
@@ -1332,12 +1332,12 @@ int Regime::apply()
 			if ( HWPBand == 1 )
 			{
 				if ( intParams["HWPBand"] == 2 ) switchHWP(1.0);
-				if ( intParams["HWPBand"] == 0 ) {switchHWP(0.0);switchHWP(0.0);}
+				if ( intParams["HWPBand"] == 0 ) {switchHWP(0.0);switchHWP(1.0);}
 			}
 			if ( HWPBand == 2 )
 			{
-				if ( intParams["HWPBand"] == 0 ) switchHWP(0.0);
-				if ( intParams["HWPBand"] == 1 ) {switchHWP(0.0);switchHWP(0.0);}
+				if ( intParams["HWPBand"] == 0 ) switchHWP(1.0);
+				if ( intParams["HWPBand"] == 1 ) {switchHWP(0.1);switchHWP(0.0);}
 			}
 			HWPBand = intParams["HWPBand"];
 		}
