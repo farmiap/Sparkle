@@ -2396,10 +2396,43 @@ void Regime::augmentPrimaryHDU()
         fits_update_key(fptr, TFLOAT, "KCT     ", &cKinetic, "",&status);   
         	        
 	// replace unused technical keywords with seven basic keywords defining observation
-	fits_modify_name(fptr, "AVERAGINGFILTERMODE", "TELESCOP", &status);
-	strcpy(value, stringParams["telescope"].c_str());   
-	fits_update_key(fptr, TSTRING, "TELESCOP", value, "",&status);
-
+	
+	char inclist[FLEN_CARD];
+	
+	int keyword_written = 0;
+	
+	if ( !keyword_written )
+	{
+		sprintf(inclist,"AVERAGINGFILTERMODE");
+		fits_find_nextkey(fptr, &inclist, 1, NULL, 0, card, &status);
+		if ( status!=KEY_NO_EXIST )
+		{
+			fits_modify_name(fptr, "AVERAGINGFILTERMODE", "TELESCOP", &status);
+			strcpy(value, stringParams["telescope"].c_str());   
+			fits_update_key(fptr, TSTRING, "TELESCOP", value, "",&status);
+			keyword_written = 1;
+		}
+	}
+	
+	if ( !keyword_written )
+	{
+		sprintf(inclist,"PREAMPGAINTEXT");
+		fits_find_nextkey(fptr, &inclist, 1, NULL, 0, card, &status);
+		if ( status!=KEY_NO_EXIST )
+		{
+			fits_modify_name(fptr, "PREAMPGAINTEXT", "TELESCOP", &status);
+			strcpy(value, stringParams["telescope"].c_str());   
+			fits_update_key(fptr, TSTRING, "TELESCOP", value, "",&status);
+			keyword_written = 1;
+		}
+	}
+	
+	if ( !keyword_written )
+	{
+		cout << "Warning: keyword TELESCOP wasn't written" << endl;
+	}
+	
+		
         fits_modify_name(fptr, "AVERAGINGFACTOR", "INSTRUME", &status);
         strcpy(value, stringParams["instrument"].c_str());  
 	fits_update_key(fptr, TSTRING, "INSTRUME", value, "",&status);
