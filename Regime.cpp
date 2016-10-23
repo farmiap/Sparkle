@@ -23,6 +23,7 @@
 #include <libnova/julian_day.h>
 #include <libnova/utility.h>
 #include <libnova/sidereal_time.h>
+#include <libnova/apparent_position.h>
 
 #include "Regime.h"
 #include "ImageAverager.h"
@@ -2703,7 +2704,12 @@ double Regime::parallacticAngle()
 {
 	struct ln_lnlat_posn observer;
 	struct ln_equ_posn object;
+	struct ln_equ_posn objectApparent;
+	struct ln_equ_posn pm;
 	struct ln_hrz_posn hrz;
+	
+	pm.ra = 0.0;
+	pm.dec = 0.0;
 	
 	observer.lng = doubleParams["longitude"];
 	observer.lat = doubleParams["latitude"];
@@ -2714,20 +2720,22 @@ double Regime::parallacticAngle()
 	double JD = ln_get_julian_from_sys();
 	double sidTime = ln_get_apparent_sidereal_time(JD)*15.0+observer.lng;
 	
-	double hourAngle = sidTime - object.ra;
+	ln_get_apparent_posn(&object,&pm,JD,&objectApparent);
+	
+	double hourAngle = sidTime - objectApparent.ra;
 
-//	cout << " lng " << observer.lng << " lat " << observer.lat << endl;
-//	cout << " ra " << object.ra << " dec " << object.dec << endl;
+	cout << " lng " << observer.lng << " lat " << observer.lat << endl;
+	cout << " ra " << object.ra << " dec " << object.dec << endl;
 	
-	ln_get_hrz_from_equ(&object, &observer, JD, &hrz);
+	ln_get_hrz_from_equ(&objectApparent, &observer, JD, &hrz);
 	
-	double sinp = cos(observer.lat/RAD)*sin(hrz.az/RAD)/cos(object.dec/RAD);
+	double sinp = cos(observer.lat/RAD)*sin(hrz.az/RAD)/cos(objectApparent.dec/RAD);
 	double cosp = cos(hrz.az/RAD)*cos(hourAngle/RAD) + sin(hrz.az/RAD)*sin(hourAngle/RAD)*cos(observer.lat/RAD);
 	
 	double parAngle = atan2(sinp,cosp)*RAD;
 	
-//	cout << "az " << hrz.az << " alt " << hrz.alt << endl;
-//	cout << "ha " << hourAngle << " parAngle " << parAngle << endl;
+	cout << "az " << hrz.az << " alt " << hrz.alt << endl;
+	cout << "ha " << hourAngle << " parAngle " << parAngle << endl;
 	
 	return parAngle;
 }
