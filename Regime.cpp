@@ -1543,7 +1543,9 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	double ADC2AngleBeforeCurrentStep = doubleParams["ADCMotor2Start"];
 	
 	double nextStepValue = 0;
-
+	double nextStepValueADC1 = 0;
+	double nextStepValueADC2 = 0;
+	
 	RotationTrigger HWPTrigger;
 	AngleContainer HWPAngleContainer;
 	
@@ -1712,10 +1714,10 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 
 		if ( withADCMotor1 && withADCMotor2 && ( intParams["ADCMode"]==ADCSTEP ) ) {
 			ADCMotor1->getAngle(&ADC1isMoving,&ADC1Angle);
-			if (!anglesProximity(ADC1AngleBeforeCurrentStep+nextStepValue,ADC1Angle,1.0))
+			if (!anglesProximity(ADC1AngleBeforeCurrentStep+nextStepValueADC1,ADC1Angle,1.0))
 				ADC1isMoving = 1;
 			ADCMotor2->getAngle(&ADC2isMoving,&ADC2Angle);
-			if (!anglesProximity(ADC2AngleBeforeCurrentStep+nextStepValue,ADC2Angle,1.0))
+			if (!anglesProximity(ADC2AngleBeforeCurrentStep+nextStepValueADC2,ADC2Angle,1.0))
 				ADC2isMoving = 1;
 			int currentStepNumber;
 			if ( ADCTrigger.check(&currentStepNumber) )
@@ -1723,14 +1725,23 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 				ADCmotionStarted = 1;
 				ADC1AngleBeforeCurrentStep = ADC1Angle;
 				ADC2AngleBeforeCurrentStep = ADC2Angle;
-				nextStepValue = getNextStepValue(currentStepNumber,doubleParams["ADCStep"],1,1);
+				if ( doubleParams["ADCStep"]>0 )
+				{
+					nextStepValueADC1 = getNextStepValue(currentStepNumber,doubleParams["ADCStep"],1,1);
+					nextStepValueADC2 = nextStepValueADC1;
+				}
+				else
+				{
+					nextStepValueADC1 = getNextStepValue(currentStepNumber,-doubleParams["ADCStep"],1,1);
+					nextStepValueADC2 = -nextStepValueADC1;
+				}
 				move(3,col3name);printw("ADC step");
 				move(3,col3val);printw("%d",currentStepNumber);
 //					printw("trigger fired: frame: %d HWP step: %d pair number: %d group number %d",frameCounter,currentStepNumber,(int)ceil(((currentStepNumber%(intParams["HWPPairNum"]*2))+1)/2.0),(int)ceil(currentStepNumber/(intParams["HWPPairNum"]*2.0)));
 				if ( !ADC1isMoving && !ADC2isMoving )
 				{
-					ADCMotor1->startMoveByAngle(nextStepValue);
-					ADCMotor2->startMoveByAngle(nextStepValue);
+					ADCMotor1->startMoveByAngle(nextStepValueADC1);
+					ADCMotor2->startMoveByAngle(nextStepValueADC2);
 					move(6,col3name);printw("                         ");
 				}
 				else
@@ -2724,8 +2735,9 @@ double Regime::parallacticAngle()
 	
 	double hourAngle = sidTime - objectApparent.ra;
 
-	cout << " lng " << observer.lng << " lat " << observer.lat << endl;
-	cout << " ra " << object.ra << " dec " << object.dec << endl;
+//	cout << " current JD " << JD-2457680 << "sid time" << sidTime << endl;
+//	cout << " lng " << observer.lng << " lat " << observer.lat << endl;
+//	cout << " ra " << object.ra << " dec " << object.dec << endl;
 	
 	ln_get_hrz_from_equ(&objectApparent, &observer, JD, &hrz);
 	
@@ -2734,8 +2746,8 @@ double Regime::parallacticAngle()
 	
 	double parAngle = atan2(sinp,cosp)*RAD;
 	
-	cout << "az " << hrz.az << " alt " << hrz.alt << endl;
-	cout << "ha " << hourAngle << " parAngle " << parAngle << endl;
+//	cout << "az " << hrz.az << " alt " << hrz.alt << endl;
+//	cout << "ha " << hourAngle << " parAngle " << parAngle << endl;
 	
 	return parAngle;
 }
