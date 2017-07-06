@@ -2,6 +2,7 @@ all: Sparkle
 
 Sparkle: main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o StandaActuator.o StepRotation.o MirrorMotion.o CommandLogger.o
 	g++ -L/home/safonov/cfitsio/lib -g -fstack-protector-all -O1 -o Sparkle main.o RegimeContainer.o Regime.o Pathes.o ImageAverager.o StandaRotationStage.o StandaActuator.o StepRotation.o MirrorMotion.o CommandLogger.o -lcfitsio -landor -lncurses -lximc -lc -lnova -Wl,--verbose
+	chgrp observers Sparkle
 	
 main.o: main.cpp RegimeContainer.cpp RegimeContainer.h ImageAverager.h
 	g++ -c -g main.cpp
