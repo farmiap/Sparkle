@@ -172,6 +172,7 @@ int StandaActuator::startMoveToPositionWait(int targetPosition)
 			cout << "." << flush;
 			percprev = perc;
 		}
+		cout << "target:" << targetPosition << "current:" << currentPosition << "time:" << deltaTime << endl;
 //		cout << "passed: " << 100.0*(1.0-fabs((double)(targetPosition-currentPosition)/(double)(targetPosition-startPosition))) << "%, time:" << deltaTime << endl;
 		if ( deltaTime > MOTIONTIMEOUT )
 		{

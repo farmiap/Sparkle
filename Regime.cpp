@@ -524,7 +524,7 @@ void Regime::printNeat(string name, int vshift)
 	nodelay(stdscr, TRUE);
 	clear();
 	
-	printRegimeBlock(name,vshift);
+	printRegimeBlock(name,vshift,0);
 	
 	char ch;
 	
@@ -540,7 +540,7 @@ void Regime::printNeat(string name, int vshift)
 	
 }
 
-void Regime::printRegimeBlock(string name, int vshift)
+void Regime::printRegimeBlock(string name, int vshift, int doSpool)
 {
 	int col1name =  1;
 	int col1val  = 12;
@@ -703,7 +703,17 @@ void Regime::printRegimeBlock(string name, int vshift)
 	
 	line = 13 + vshift;
 	move(line,lowname);printw("filename");
-	move(line,lowval); printw("%s",stringParams["fitsname"].substr(0,65).c_str());line++;
+	if (doSpool)
+	{
+		move(line,lowval); printw("%s, RECORDING",stringParams["fitsname"].substr(0,65).c_str());
+	}
+	else
+	{
+		move(line,lowval); printw("NOT RECORDING");
+	}
+	
+	
+	line++;
 	move(line,lowname);printw("directory");
 	move(line,lowval); printw("%s",stringParams["fitsdir"].substr(0,65).c_str());line++;
 	
@@ -1235,7 +1245,7 @@ void Regime::commandHintsFill()
 	commandHints["HWPSwitchingMotion1"] = "motion of HWP rotator before performing switch, degrees, motion #1";
 	commandHints["HWPSwitchingMotion2"] = "motion of HWP rotator before performing switch, degrees, motion #2";
 	commandHints["HWPSwitchingSpeed"] = "speed of motion of HWP rotator performing switch, degrees/sec";
-	commandHints["HWPBand"] = "Current HWP code 0 - red, 1 - knife, 2 - green";
+	commandHints["HWPBand"] = "Current HWP code 0 - red, 1 - green, 2 - knife";
 	
 	commandHints["light"] = "Calibration light should be off - 0 or on - 1";
 	
@@ -1611,7 +1621,7 @@ bool Regime::runTillAbort(bool avImg, bool doSpool)
 	nodelay(stdscr, TRUE);
 
 	printRTABlock();
-	printRegimeBlock("",7);
+	printRegimeBlock("",7,doSpool);
 	
 	if ( status == DRV_SUCCESS ) {
 		move(2,col1name);printw("detector");

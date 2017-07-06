@@ -110,7 +110,7 @@ private:
 	
 	int switchHWP(double posShift);
 
-	void printRegimeBlock(string name,int vshift);
+	void printRegimeBlock(string name,int vshift,int doSpool);
 	void printRTABlock();
 	
 	void processImage(at_32* data, at_32* data2, int width, int height, int datasize2, double* xpos, double *ypos, int* satPix, int* subsatPix, double* intensity);

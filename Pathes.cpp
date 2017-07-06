@@ -65,7 +65,7 @@ const char* Pathes::getAutopathSuff()
 	nowtm = gmtime(&nowtime);
 	nowtime = tv.tv_sec;
 	nowtm = gmtime(&nowtime);
-	strftime(tmbuf, sizeof tmbuf, "%Y%m%d%H%M%S", nowtm);
+	strftime(tmbuf, sizeof tmbuf, "SP%Y%m%d%H%M%S", nowtm);
 	
 	string timename = fits_dir + string(tmbuf) + fits_suffix;
 
